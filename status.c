@@ -104,7 +104,13 @@ int main() {
             }
         }
 
-        // TODO: contents
+        // Current time
+        {
+            size_t len = buf_remaining(&line);
+            time_t t = time(NULL);
+            len = strftime(line.data, len, "%F %T", localtime(&t));
+            buf_bump(&line, len);
+        }
 
         // The newline is the one thing which has to end up in the line. Without
         // it, there's no point in printing the buffer's contents.
