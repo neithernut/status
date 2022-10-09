@@ -114,7 +114,7 @@ int main() {
 
         // The newline is the one thing which has to end up in the line. Without
         // it, there's no point in printing the buffer's contents.
-        if (buf_append(&line, "\n") < 0)
+        if (buf_append(&line, "\n") <= 0)
             continue;
         res = write(STDOUT_FILENO, line.data, line.len);
         if (res < 0)
