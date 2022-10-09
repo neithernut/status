@@ -11,6 +11,11 @@
 
 #include <sys/timerfd.h>
 
+#include <liburing.h>
+
+
+#define MAX_STATUS_ENTRIES 16
+
 
 struct buf {
     uint8_t len;
@@ -62,6 +67,13 @@ int buf_printf(struct buf* b, const char *format, ...) {
 }
 
 
+struct status_entry {
+    char* name;
+    int fd;
+    char* (*extract)(struct buf*);
+};
+
+
 void die(const char* str) {
     fprintf(stderr, "%s: %s", str, strerror(errno));
     exit(1);
@@ -88,6 +100,17 @@ int arm_timer(int fd) {
 int main() {
     int res;
 
+    struct status_entry entry[16];
+    size_t entry_num = 0;
+
+    struct io_uring ring;
+    res = io_uring_queue_init(sizeof(entry)/sizeof(entry[0]), &ring, 0);
+    if (res >= 0) {
+        // TODO: prepare entries
+    } else {
+        fprintf(stderr, "Could not initialize io_uring: %s", strerror(-res));
+    }
+
     int timer = timerfd_create(CLOCK_REALTIME, 0);
     if (timer < 0)
         die("Could create timer");
@@ -97,6 +120,22 @@ int main() {
     while (1) {
         struct buf line;
         buf_reset(&line, 1); // We reserve one byte for the newline
+
+        // Prepare reads for each entry in advance
+        struct buf entry_rawdata[sizeof(entry)/sizeof(entry[0])];
+        for (size_t i = 0; i<entry_num; ++i) {
+            int fd = entry[i].fd;
+
+            struct buf* buf = entry_rawdata + i;
+            // We may need to add a null-byte at some point after the read
+            buf_reset(buf, 1);
+
+            struct io_uring_sqe* sqe = io_uring_get_sqe(&ring);
+            if (!sqe)
+                break;
+            io_uring_prep_read(sqe, fd, buf->data, buf_remaining(buf), 0);
+            io_uring_sqe_set_data64(sqe, i);
+        }
 
         {
             uint64_t buf;
@@ -110,12 +149,41 @@ int main() {
             }
         }
 
+        int submitted = io_uring_submit(&ring);
+
         // Current time
         {
             size_t len = buf_remaining(&line);
             time_t t = time(NULL);
             len = strftime(line.data, len, "%F %T", localtime(&t));
             buf_bump(&line, len);
+        }
+
+        // Process submission results, collecting vals to include in the output
+        char* strdata[sizeof(entry)/sizeof(entry[0])];
+        while (submitted-- > 0) {
+            struct io_uring_cqe* cqe;
+            if (io_uring_wait_cqe(&ring, &cqe) < 0)
+                break;
+
+            uint64_t i = io_uring_cqe_get_data64(cqe);
+
+            struct buf* buf = entry_rawdata + i;
+            buf_bump(buf, cqe->res);
+            buf_take_reserve(buf);
+            io_uring_cqe_seen(&ring, cqe);
+
+            strdata[i] = (entry[i].extract)(entry_rawdata + i);
+        }
+
+        // Extend line with values
+        for (size_t i = 0; i<entry_num; ++i) {
+            const char* name = entry[i].name;
+            const char* val = strdata[i];
+            if (name)
+                buf_printf(&line, " %s: %s", name, val);
+            else
+                buf_printf(&line, " %s", val);
         }
 
         // The newline is the one thing which has to end up in the line. Without
