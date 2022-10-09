@@ -125,8 +125,9 @@ int arm_timer(int fd) {
 }
 
 
-int main() {
+int main(int argc, char* argv[]) {
     int res;
+    char* config = "";
 
     struct status_entry entry[16];
     size_t entry_num = 0;
@@ -134,8 +135,16 @@ int main() {
     struct io_uring ring;
     res = io_uring_queue_init(sizeof(entry)/sizeof(entry[0]), &ring, 0);
     if (res >= 0) {
-        // We could as well open all these files using the io_uring, but we
-        // don't want holes in `entry` if we can't open some of them.
+        if (argc >= 2)
+            config = argv[1];
+    } else {
+        fprintf(stderr, "Could not initialize io_uring: %s\n", strerror(-res));
+    }
+
+    // We could as well open all these files using the io_uring, but we don't
+    // want holes in `entry` if we can't open some of them.
+    for (char* c = config; *c; ++c) switch (*c) {
+    case 'p': // Pressure
         res = open("/proc/pressure/cpu", O_RDONLY);
         if (res >= 0) {
             struct status_entry* e = entry + entry_num++;
@@ -159,8 +168,11 @@ int main() {
             e->fd = res;
             e->extract = extract_psi;
         }
-    } else {
-        fprintf(stderr, "Could not initialize io_uring: %s\n", strerror(-res));
+        break;
+
+    default:
+        fprintf(stderr, "Specifier not recognized: %c\n", *c);
+        exit(1);
     }
 
     int timer = timerfd_create(CLOCK_REALTIME, 0);
