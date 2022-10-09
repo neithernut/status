@@ -103,7 +103,7 @@ char* extract_psi(struct buf* buf) {
 
 
 void die(const char* str) {
-    fprintf(stderr, "%s: %s", str, strerror(errno));
+    fprintf(stderr, "%s: %s\n", str, strerror(errno));
     exit(1);
 }
 
@@ -160,7 +160,7 @@ int main() {
             e->extract = extract_psi;
         }
     } else {
-        fprintf(stderr, "Could not initialize io_uring: %s", strerror(-res));
+        fprintf(stderr, "Could not initialize io_uring: %s\n", strerror(-res));
     }
 
     int timer = timerfd_create(CLOCK_REALTIME, 0);
