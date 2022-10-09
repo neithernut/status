@@ -102,6 +102,18 @@ char* extract_psi(struct buf* buf) {
 }
 
 
+char* extract_word(struct buf* buf) {
+    if (buf_terminate(buf) < 0)
+        return "???";
+
+    char* word = strtok(buf->data, " ");
+    if (word)
+        return word;
+
+    return "???";
+}
+
+
 void die(const char* str) {
     fprintf(stderr, "%s: %s\n", str, strerror(errno));
     exit(1);
@@ -167,6 +179,16 @@ int main(int argc, char* argv[]) {
             e->name = "io";
             e->fd = res;
             e->extract = extract_psi;
+        }
+        break;
+
+    case 'l': // Load
+        res = open("/proc/loadavg", O_RDONLY);
+        if (res >= 0) {
+            struct status_entry* e = entry + entry_num++;
+            e->name = "load";
+            e->fd = res;
+            e->extract = extract_word;
         }
         break;
 
