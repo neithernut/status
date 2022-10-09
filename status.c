@@ -14,17 +14,23 @@
 
 struct buf {
     uint8_t len;
+    uint8_t reserve;
     char data[120];
 };
 
-void buf_reset(struct buf* b) {
+void buf_reset(struct buf* b, uint8_t reserve) {
     b->len = 0;
+    b->reserve = reserve;
+}
+
+void buf_take_reserve(struct buf* b) {
+    b->reserve = 0;
 }
 
 size_t buf_remaining(const struct buf* b) {
     if (b->len >= sizeof(b->data))
         return 0;
-    return sizeof(b->data) - b->len;
+    return sizeof(b->data) - (b->len + b->reserve);
 }
 
 int buf_bump(struct buf* b, int chars) {
@@ -90,7 +96,7 @@ int main() {
 
     while (1) {
         struct buf line;
-        buf_reset(&line);
+        buf_reset(&line, 1); // We reserve one byte for the newline
 
         {
             uint64_t buf;
@@ -114,6 +120,7 @@ int main() {
 
         // The newline is the one thing which has to end up in the line. Without
         // it, there's no point in printing the buffer's contents.
+        buf_take_reserve(&line);
         if (buf_append(&line, "\n") <= 0)
             continue;
         res = write(STDOUT_FILENO, line.data, line.len);
