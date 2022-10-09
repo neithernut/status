@@ -13,7 +13,7 @@
 
 
 struct buf {
-    size_t len;
+    uint8_t len;
     char data[120];
 };
 
