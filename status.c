@@ -81,6 +81,27 @@ struct status_entry {
 };
 
 
+char* extract_psi(struct buf* buf) {
+    if (buf_terminate(buf) < 0)
+        return "???";
+
+    char* line = strtok(buf->data, "\n");
+    while (line) {
+        if (strncmp(line, "some", 4) == 0) {
+            char* kv = strtok(line, " ");
+            while (kv) {
+                if (strncmp(kv, "avg10=", 6) == 0)
+                    return kv + 6;
+                kv = strtok(NULL, " ");
+            }
+        }
+        line = strtok(NULL, "\n");
+    }
+
+    return "???";
+}
+
+
 void die(const char* str) {
     fprintf(stderr, "%s: %s", str, strerror(errno));
     exit(1);
@@ -113,7 +134,31 @@ int main() {
     struct io_uring ring;
     res = io_uring_queue_init(sizeof(entry)/sizeof(entry[0]), &ring, 0);
     if (res >= 0) {
-        // TODO: prepare entries
+        // We could as well open all these files using the io_uring, but we
+        // don't want holes in `entry` if we can't open some of them.
+        res = open("/proc/pressure/cpu", O_RDONLY);
+        if (res >= 0) {
+            struct status_entry* e = entry + entry_num++;
+            e->name = "cpu";
+            e->fd = res;
+            e->extract = extract_psi;
+        }
+
+        res = open("/proc/pressure/memory", O_RDONLY);
+        if (res >= 0) {
+            struct status_entry* e = entry + entry_num++;
+            e->name = "mem";
+            e->fd = res;
+            e->extract = extract_psi;
+        }
+
+        res = open("/proc/pressure/io", O_RDONLY);
+        if (res >= 0) {
+            struct status_entry* e = entry + entry_num++;
+            e->name = "io";
+            e->fd = res;
+            e->extract = extract_psi;
+        }
     } else {
         fprintf(stderr, "Could not initialize io_uring: %s", strerror(-res));
     }
