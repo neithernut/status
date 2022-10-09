@@ -10,6 +10,19 @@ you'll probably not find on a BSD. Don't expect much development to happen
 here, aside maybe from me changing what things are included in the status.
 
 
+## Usage
+
+    status [specifiers]
+
+`specifiers` being a string of specifiers for values to include in the status.
+The following specifiers are recognized:
+
+ * `p`: resource pressure information (cpu, io, mem)
+ * `l`: system load (as in loadavg)
+
+If no specifiers are specified, the status will only contain the time.
+
+
 ## Motivation
 
 So I recently came around using [sway](https://swaywm.org/). Sway doesn't come
