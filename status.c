@@ -66,6 +66,13 @@ int buf_printf(struct buf* b, const char *format, ...) {
     return buf_bump(b, retval);
 }
 
+int buf_terminate(struct buf* b) {
+    if (1 > buf_remaining(b))
+        return -1;
+    b->data[b->len] = '\0';
+    return buf_bump(b, 1);
+}
+
 
 struct status_entry {
     char* name;
