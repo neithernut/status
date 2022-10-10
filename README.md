@@ -72,8 +72,10 @@ even earlier in the second!
 
 ## Build
 
-Build using your favorite C compiler and libc supporting all the extensions
-used by my code and `liburing`. You'll also have to link against `liburing`.
+This thing depends on [liburing](https://github.com/axboe/liburing) 2.2 or
+later. Build using your favorite C compiler and libc supporting all the
+extensions used by my code and `liburing`. You'll also have to link against
+`liburing`.
 
 
 ## License
