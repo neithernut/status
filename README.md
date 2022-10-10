@@ -45,8 +45,10 @@ While this works, you get the clock update anywhere in a second. Ideally, the
 update would happen near the *beginning* of a second. Is this important for a
 desktop widget? Probably (well, most certainly) not. But it's *nice* to have.
 
-I'm actually not 100% sure whether my approach works, but worst case the thing
-is on par with what you normally get.
+I'm actually not 100% sure whether my approach works, especially in the event
+of clock adjustments, which may occur rather regularly on machines running an
+NTP client. At least multiple instances appear to "tick" in sync as one would
+expect. Worst case the thing is on par with what you normally get.
 
 ### Fiddle around with `io_uring`
 
