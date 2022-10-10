@@ -124,9 +124,7 @@ int arm_timer(int fd) {
     int res;
     do {
         // We try to configure our timer to trigger on exact wallclock seconds.
-        struct itimerspec config = {
-            .it_interval = {0, 500000000}
-        };
+        struct itimerspec config = { .it_interval = {1, 0} };
         res = clock_gettime(CLOCK_REALTIME, &config.it_value);
         if (res < 0)
             break;
