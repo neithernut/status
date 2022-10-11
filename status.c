@@ -2,6 +2,7 @@
 // Copyright Julian Ganz 2022
 
 #include <errno.h>
+#include <fcntl.h>
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
