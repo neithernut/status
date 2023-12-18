@@ -73,9 +73,10 @@ even earlier in the second!
 ## Build
 
 This thing depends on [liburing](https://github.com/axboe/liburing) 2.2 or
-later. Build using your favorite C compiler and libc supporting all the
-extensions used by my code and `liburing`. You'll also have to link against
-`liburing`.
+later. Build using `make`, possibly supplying include and library paths for
+liburing via the usual make/environment variables. Be aware that the code may
+make use of some GNU extensions, and that the `Makefile` is making heavy use of
+built-in rules, some of which may be specific to GNU-make.
 
 
 ## License
