@@ -1,0 +1,10 @@
+[package]
+name = "status"
+description = "Status line generator using IO uring"
+version = "0.1.0"
+authors = ["Julian Ganz <neither@nut.email>"]
+edition = "2021"
+license = "MIT"
+
+[dependencies]
+anyhow = "1.0"
