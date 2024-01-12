@@ -2,6 +2,7 @@
 // Copyright Julian Ganz 2023, 2024
 
 mod read;
+mod source;
 
 use anyhow::{Context, Error, Result};
 use rustix::{io::Errno, time as rtime};
