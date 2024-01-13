@@ -42,6 +42,7 @@ fn main() -> Result<()> {
     use std::io::Write;
 
     let mut entries: Vec<Box<dyn std::fmt::Display>> = Default::default();
+    let mut reads = read::Reads::new();
 
     // TODO: add entries
 
@@ -52,17 +53,32 @@ fn main() -> Result<()> {
     .context("Could not create timer")?;
     arm_timer(&timer)?;
 
+    let mut ring = io_uring::IoUring::new(reads.len().max(1).try_into().unwrap_or(u32::MAX))
+        .context("Could not creatio IO uring")?;
+
+    let mut entry_buffer: Vec<io_uring::squeue::Entry> = Default::default();
     let mut output_buffer: Vec<u8> = Default::default();
     loop {
-        // We re-use the buffer in order to avoid repeated allocations. Which
+        // We re-use these buffers in order to avoid repeated allocations. Which
         // means we need to clear it manually.
+        entry_buffer.clear();
         output_buffer.clear();
+
+        {
+            entry_buffer.extend(reads.uring_entries());
+            let mut submission = ring.submission();
+            unsafe { submission.push_multiple(entry_buffer.as_ref()) }
+                .context("Could not push some read items")?;
+        }
 
         match rustix::io::read_uninit(&timer, &mut [core::mem::MaybeUninit::uninit(); 8]) {
             Ok(_) => (),
             Err(Errno::CANCELED) => arm_timer(&timer)?,
             Err(e) => return Err(Error::new(e).context("Broken timer")),
         };
+
+        ring.submit().context("Could not submit read items")?;
+        ring.completion().try_for_each(|e| reads.process(e))?;
 
         time::OffsetDateTime::now_local()
             .context("Could not get current time")?
