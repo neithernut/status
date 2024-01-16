@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Copyright Julian Ganz 2023, 2024
 
+mod entry;
 mod read;
 mod source;
 
