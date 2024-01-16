@@ -38,6 +38,10 @@ fn arm_timer(timer: impl rustix::fd::AsFd + Copy) -> Result<()> {
 fn main() -> Result<()> {
     use std::io::Write;
 
+    let mut entries: Vec<Box<dyn std::fmt::Display>> = Default::default();
+
+    // TODO: add entries
+
     let timer = rtime::timerfd_create(
         rtime::TimerfdClockId::Realtime,
         rtime::TimerfdFlags::CLOEXEC,
@@ -61,6 +65,9 @@ fn main() -> Result<()> {
             .context("Could not get current time")?
             .format_into(&mut output_buffer, DATETIME_FORMAT)
             .context("Could not format current time")?;
+
+        entries.iter().try_for_each(|e| write!(output_buffer, " {}", e))
+            .context("Could not format entry")?;
 
         output_buffer
             .write_all(b"\n")
