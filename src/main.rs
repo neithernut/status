@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: MIT
-// Copyright Julian Ganz 2023
+// Copyright Julian Ganz 2023, 2024
+
+mod read;
 
 use anyhow::{Context, Error, Result};
 use rustix::{io::Errno, time as rtime};
