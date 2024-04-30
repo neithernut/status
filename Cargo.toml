@@ -8,3 +8,4 @@ license = "MIT"
 
 [dependencies]
 anyhow = "1.0"
+rustix = {version = "0.38", features = ["time"]}
