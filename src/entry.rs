@@ -42,6 +42,37 @@ where
 /// Function type formatting a specific entry
 pub type Formatter = Box<dyn Fn(&mut fmt::Formatter<'_>) -> fmt::Result>;
 
+/// Entry displaying the local date and time
+#[derive(Default)]
+pub struct LocalTime;
+
+impl Entry for LocalTime {
+    type Display<'a> = DateTime;
+
+    fn display(&self) -> Option<Self::Display<'_>> {
+        let time = unsafe { *libc::localtime(&libc::time(std::ptr::null_mut())) };
+        Some(DateTime(time))
+    }
+}
+
+/// Printable date and time
+pub struct DateTime(libc::tm);
+
+impl fmt::Display for DateTime {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{:04}-{:02}-{:02} {:02}:{:02}:{:02}",
+            self.0.tm_year + 1900,
+            self.0.tm_mon,
+            self.0.tm_mday,
+            self.0.tm_hour,
+            self.0.tm_min,
+            self.0.tm_sec,
+        )
+    }
+}
+
 /// Helper for formatting [Option]s with [None] as `???`
 struct OptionDisplay<D: fmt::Display>(pub Option<D>);
 
