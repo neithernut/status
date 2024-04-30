@@ -65,3 +65,76 @@ impl Item {
         Ok(())
     }
 }
+
+/// Abstraction of an IO uring processing a set of [Item]s multiple times
+pub struct Ring {
+    ring: iou::IoUring,
+    items: Vec<Item>,
+}
+
+impl Ring {
+    /// Prepare submission queue events for all [Item]s
+    pub fn prepare(&mut self) -> Result<()> {
+        let sqes = self
+            .len()
+            .try_into()
+            .context("Could not prepare enough SQEs")?;
+        let mut sq = self.ring.sq();
+        let sqes = sq
+            .prepare_sqes(sqes)
+            .context("Could not get submission queue events for preparation")?;
+        self.items
+            .iter_mut()
+            .zip(sqes)
+            .zip(0..)
+            .for_each(|((t, mut e), n)| unsafe {
+                t.prepare(&mut e);
+                e.set_user_data(n);
+            });
+        Ok(())
+    }
+
+    /// Submit events and dispatch completion events
+    pub fn submit_and_dispatch(&mut self) -> Result<()> {
+        let submitted = self
+            .ring
+            .submit_sqes()
+            .context("Could not submit read items")?;
+        for _ in 0..submitted {
+            let cqe = self
+                .ring
+                .wait_for_cqe()
+                .context("Could not get read item result")?;
+            let id: usize = cqe
+                .user_data()
+                .try_into()
+                .with_context(|| format!("Encountered invalid item id {}", cqe.user_data()))?;
+            self.items
+                .get(id)
+                .context("Could not find associated read item")?
+                .process(cqe.result())
+                .context("Item with id {id} failed")?;
+        }
+        Ok(())
+    }
+
+    /// Retrieve the number of [Item]s
+    pub fn len(&self) -> usize {
+        self.items.len()
+    }
+}
+
+impl TryFrom<Vec<Item>> for Ring {
+    type Error = anyhow::Error;
+
+    fn try_from(mut items: Vec<Item>) -> Result<Self, Self::Error> {
+        items.shrink_to_fit();
+        let num = items
+            .len()
+            .max(1)
+            .try_into()
+            .context("Too many items for one ring")?;
+        let ring = iou::IoUring::new(num).context("Could not create IO uring")?;
+        Ok(Self { ring, items })
+    }
+}
