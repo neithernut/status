@@ -13,6 +13,9 @@ fn main() -> Result<()> {
     use std::io::Write;
 
     let mut reads: Vec<read::Item> = Default::default();
+    let entries: entry::EntriesDisplay = spec::entries(&mut reads)
+        .context("Could not parse entry specifications")?
+        .into();
     let mut ring: read::Ring = reads.try_into()?;
 
     // Timer ticking on wallclock seconds
@@ -36,7 +39,7 @@ fn main() -> Result<()> {
         ring.submit_and_dispatch()
             .context("Could not dispatch read items")?;
 
-        writeln!(output_buffer, "").context("Could not format line")?;
+        writeln!(output_buffer, "{entries}").context("Could not format line")?;
         std::io::stdout()
             .write_all(output_buffer.as_ref())
             .context("Could not print status line")?;
