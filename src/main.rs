@@ -3,6 +3,7 @@
 
 use anyhow::Result;
 
+mod entry;
 mod read;
 mod source;
 
