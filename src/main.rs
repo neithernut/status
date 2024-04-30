@@ -12,6 +12,9 @@ mod spec;
 fn main() -> Result<()> {
     use std::io::Write;
 
+    let mut reads: Vec<read::Item> = Default::default();
+    let mut ring: read::Ring = reads.try_into()?;
+
     // Timer ticking on wallclock seconds
     let timer = time::timerfd_create(time::TimerfdClockId::Realtime, time::TimerfdFlags::CLOEXEC)
         .context("Could not create timer")?;
@@ -23,11 +26,15 @@ fn main() -> Result<()> {
         // means we need to clear it manually.
         output_buffer.clear();
 
+        ring.prepare().context("Could not prepare read items")?;
+
         match rustix::io::read_uninit(&timer, &mut [core::mem::MaybeUninit::uninit(); 8]) {
             Ok(_) => (),
             Err(Errno::CANCELED) => arm_timer(&timer)?,
             Err(e) => return Err(Error::new(e).context("Broken timer")),
         };
+        ring.submit_and_dispatch()
+            .context("Could not dispatch read items")?;
 
         writeln!(output_buffer, "").context("Could not format line")?;
         std::io::stdout()
