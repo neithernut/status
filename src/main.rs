@@ -4,6 +4,7 @@
 use anyhow::Result;
 
 mod read;
+mod source;
 
 fn main() -> Result<()> {
     Ok(())
