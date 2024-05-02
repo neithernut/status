@@ -6,6 +6,7 @@ use anyhow::Result;
 mod entry;
 mod read;
 mod source;
+mod spec;
 
 fn main() -> Result<()> {
     Ok(())
