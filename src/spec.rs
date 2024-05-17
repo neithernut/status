@@ -2,9 +2,13 @@
 // Copyright Julian Ganz 2024
 //! Status line specification helpers
 
+use std::collections::hash_map::{self, HashMap};
+use std::path::PathBuf;
 use std::str::FromStr;
 
-use anyhow::Result;
+use anyhow::{Context, Result};
+
+use crate::read;
 
 /// A single specification for status line entries
 #[derive(PartialEq, Debug)]
@@ -50,6 +54,56 @@ impl<'a> From<&'a str> for Spec<'a> {
         let (main, subs) = s.split_once(':').unwrap_or((s, Default::default()));
         let subs = subs.split(',').filter(|s| !s.is_empty()).collect();
         Self { main, subs }
+    }
+}
+
+/// Installer for [read::Item]s, making sure we only have one per path
+struct ReadItemInstaller<'i> {
+    items: &'i mut Vec<read::Item>,
+    processors: HashMap<PathBuf, std::rc::Rc<dyn std::any::Any>>,
+}
+
+impl<'i> ReadItemInstaller<'i> {
+    /// Create a new installer pusing [read::Item]s to the given [Vec]
+    pub fn new(items: &'i mut Vec<read::Item>) -> Self {
+        Self {
+            items,
+            processors: Default::default(),
+        }
+    }
+
+    /// Install a [read::BufProcessor]'s [Default] value
+    pub fn default<P: read::BufProcessor + Default + 'static>(
+        &mut self,
+        path: impl Into<PathBuf>,
+        buf_size: usize,
+    ) -> Result<read::Ref<P>> {
+        self.install(path, buf_size, Default::default())
+    }
+
+    /// Install a given [read::BufProcessor]
+    pub fn install<P: read::BufProcessor + 'static>(
+        &mut self,
+        path: impl Into<PathBuf>,
+        buf_size: usize,
+        processor: P,
+    ) -> Result<read::Ref<P>> {
+        match self.processors.entry(path.into()) {
+            hash_map::Entry::Occupied(entry) => {
+                entry.get().clone().downcast().map_err(|_| {
+                    anyhow::anyhow!("Existing processor for file has incompatible type")
+                })
+            }
+            hash_map::Entry::Vacant(entry) => {
+                let processor: read::Ref<P> = read::Ref::new(processor.into());
+                let file = std::fs::File::open(entry.key())
+                    .with_context(|| format!("Could not open {}", entry.key().display()))?;
+                self.items
+                    .push(read::Item::new(file, buf_size, processor.clone()));
+                entry.insert(processor.clone());
+                Ok(processor)
+            }
+        }
     }
 }
 
