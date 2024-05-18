@@ -17,6 +17,14 @@ pub trait Entry: Sized + 'static {
     /// Get a display representation for this entry
     fn display(&self) -> Option<Self::Display<'_>>;
 
+    /// Transform this entry into a labeled one
+    fn with_label<L>(self, label: L) -> Labeled<L, Self>
+    where
+        L: fmt::Display + Sized + 'static,
+    {
+        Labeled { label, entry: self }
+    }
+
     /// Transform this entry into a [Formatter]
     fn into_fmt(self) -> Formatter {
         Box::new(move |f| fmt::Display::fmt(&OptionDisplay(self.display()), f))
@@ -70,6 +78,36 @@ impl fmt::Display for DateTime {
             self.0.tm_min,
             self.0.tm_sec,
         )
+    }
+}
+
+/// A labeled [Entry]
+pub struct Labeled<L: fmt::Display + Sized + 'static, E: Entry> {
+    label: L,
+    entry: E,
+}
+
+impl<L: fmt::Display + Sized + 'static, E: Entry> Entry for Labeled<L, E> {
+    type Display<'a> = LabeledDisplay<'a, L, E::Display<'a>>;
+
+    fn display(&self) -> Option<Self::Display<'_>> {
+        Some(Self::Display {
+            label: &self.label,
+            display: self.entry.display(),
+        })
+    }
+}
+
+/// A labeled [fmt::Display]
+pub struct LabeledDisplay<'l, L: fmt::Display, D: fmt::Display> {
+    label: &'l L,
+    display: Option<D>,
+}
+
+impl<L: fmt::Display, D: fmt::Display> fmt::Display for LabeledDisplay<'_, L, D> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let display = OptionDisplay(self.display.as_ref());
+        write!(f, "{}: {}", self.label, display)
     }
 }
 
