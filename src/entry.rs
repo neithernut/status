@@ -4,6 +4,9 @@
 
 use std::fmt;
 
+use crate::read::Ref;
+use crate::source::Source;
+
 /// A single entry of a status line
 pub trait Entry: Sized + 'static {
     /// Type being displayed for this entry
@@ -17,6 +20,22 @@ pub trait Entry: Sized + 'static {
     /// Transform this entry into a [Formatter]
     fn into_fmt(self) -> Formatter {
         Box::new(move |f| fmt::Display::fmt(&OptionDisplay(self.display()), f))
+    }
+}
+
+impl<S> Entry for Ref<S>
+where
+    S: Source + 'static,
+    S::Value: fmt::Display + Clone,
+{
+    type Display<'a> = S::Value;
+
+    fn display(&self) -> Option<Self::Display<'_>> {
+        self.borrow()
+            .value()
+            .as_ref()
+            .map(std::borrow::Borrow::borrow)
+            .cloned()
     }
 }
 
