@@ -3,7 +3,8 @@
 //! Status line specification helpers
 
 use std::collections::hash_map::{self, HashMap};
-use std::path::PathBuf;
+use std::fmt;
+use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
 use anyhow::{Context, Result};
@@ -54,6 +55,49 @@ impl<'a> From<&'a str> for Spec<'a> {
         let (main, subs) = s.split_once(':').unwrap_or((s, Default::default()));
         let subs = subs.split(',').filter(|s| !s.is_empty()).collect();
         Self { main, subs }
+    }
+}
+
+/// PSI-specific sub specification
+#[derive(Copy, Clone, Debug)]
+enum PSI {
+    Cpu,
+    Memory,
+    Io,
+}
+
+impl PSI {
+    /// Get the path for the file from which to pull this info
+    pub fn path(self) -> &'static Path {
+        let path = match self {
+            Self::Cpu => "/proc/pressure/cpu",
+            Self::Memory => "/proc/pressure/memory",
+            Self::Io => "/proc/pressure/io",
+        };
+        Path::new(path)
+    }
+}
+
+impl FromStr for PSI {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "cpu" | "c" => Ok(Self::Cpu),
+            "memory" | "mem" | "m" => Ok(Self::Memory),
+            "io" => Ok(Self::Io),
+            _ => Err(anyhow::anyhow!("Not a valid sub spec for PSI: {s}")),
+        }
+    }
+}
+
+impl fmt::Display for PSI {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+            Self::Cpu => "cpu",
+            Self::Memory => "mem",
+            Self::Io => "io",
+        })
     }
 }
 
