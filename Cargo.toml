@@ -12,3 +12,9 @@ either = "1.12"
 iou = "0.3"
 libc = "0.2"
 rustix = {version = "0.38", features = ["time"]}
+
+[profile.release]
+opt-level = "s"
+strip = true
+lto = true
+panic = "abort"
