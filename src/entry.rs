@@ -58,6 +58,30 @@ where
 /// Function type formatting a specific entry
 pub type Formatter = Box<dyn Fn(&mut fmt::Formatter<'_>) -> fmt::Result>;
 
+/// [fmt::Display] for displaying a space-separated list of entries
+pub struct EntriesDisplay(Vec<Formatter>);
+
+impl From<Vec<Formatter>> for EntriesDisplay {
+    fn from(formatters: Vec<Formatter>) -> Self {
+        Self(formatters)
+    }
+}
+
+impl fmt::Display for EntriesDisplay {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut entries = self.0.iter();
+        let Some(first) = entries.next() else {
+            return Ok(());
+        };
+
+        first(f)?;
+        entries.try_for_each(|e| {
+            f.write_str(" ")?;
+            e(f)
+        })
+    }
+}
+
 /// Entry displaying the local date and time
 #[derive(Default)]
 pub struct LocalTime;
