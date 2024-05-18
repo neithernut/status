@@ -13,6 +13,20 @@ use crate::entry;
 use crate::read;
 use crate::source;
 
+/// Create entries based on command line arguments
+///
+/// Associated [read::Item]s will be appended to `items`.
+pub fn entries(items: &mut Vec<read::Item>) -> Result<Vec<entry::Formatter>> {
+    let mut res = Default::default();
+    let mut items = ReadItemInstaller::new(items);
+    std::env::args().skip(1).try_for_each(|a| {
+        apply(a.as_str().into(), &mut res, &mut items)
+            .with_context(|| format!("Could not add entries for '{a}'"))
+    })?;
+
+    Ok(res)
+}
+
 /// Apply a given specification
 ///
 /// Create entris and install [read::Item]s for a single given [Spec].
