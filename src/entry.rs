@@ -25,6 +25,14 @@ pub trait Entry: Sized + 'static {
         Labeled { label, entry: self }
     }
 
+    /// Transform this entry into one with a specific precision
+    fn with_precision(self, precision: u8) -> Precision<Self> {
+        Precision {
+            entry: self,
+            precision,
+        }
+    }
+
     /// Transform this entry into a [Formatter]
     fn into_fmt(self) -> Formatter {
         Box::new(move |f| fmt::Display::fmt(&OptionDisplay(self.display()), f))
@@ -108,6 +116,35 @@ impl<L: fmt::Display, D: fmt::Display> fmt::Display for LabeledDisplay<'_, L, D>
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let display = OptionDisplay(self.display.as_ref());
         write!(f, "{}: {}", self.label, display)
+    }
+}
+
+/// An [Entry] with a specified precision
+pub struct Precision<E: Entry> {
+    entry: E,
+    precision: u8,
+}
+
+impl<E: Entry> Entry for Precision<E> {
+    type Display<'a> = PrecisionDisplay<E::Display<'a>>;
+
+    fn display(&self) -> Option<Self::Display<'_>> {
+        self.entry.display().map(|d| Self::Display {
+            display: d,
+            precision: self.precision,
+        })
+    }
+}
+
+/// A [fmt::Display] with a specified precision
+pub struct PrecisionDisplay<D: fmt::Display> {
+    display: D,
+    precision: u8,
+}
+
+impl<D: fmt::Display> fmt::Display for PrecisionDisplay<D> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{0:.1$}", self.display, self.precision.into())
     }
 }
 
