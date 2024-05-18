@@ -9,7 +9,51 @@ use std::str::FromStr;
 
 use anyhow::{Context, Result};
 
+use crate::entry;
 use crate::read;
+use crate::source;
+
+/// Apply a given specification
+///
+/// Create entris and install [read::Item]s for a single given [Spec].
+fn apply(
+    spec: Spec<'_>,
+    entries: &mut Vec<entry::Formatter>,
+    installer: &mut ReadItemInstaller<'_>,
+) -> Result<()> {
+    use entry::Entry;
+
+    match spec.main {
+        "datetime" | "time" | "dt" | "t" => {
+            spec.no_subs()?;
+            entries.push(entry::LocalTime.into_fmt())
+        },
+        "load" | "l" => {
+            spec.no_subs()?;
+            let entry = installer
+                .default::<source::Word<f32>>("/proc/loadavg", 64)?
+                .with_precision(2)
+                .with_label("load")
+                .into_fmt();
+            entries.push(entry);
+        }
+        "pressure" | "pres" | "psi" | "p" => {
+            spec.parsed_subs_or([Ok(PSI::Cpu), Ok(PSI::Memory), Ok(PSI::Io)])
+                .try_for_each(|i| {
+                    let indicator = i?;
+                    let entry = installer
+                        .default::<source::PSI>(indicator.path(), 128)?
+                        .with_precision(2)
+                        .with_label(indicator)
+                        .into_fmt();
+                    entries.push(entry);
+                    anyhow::Ok(())
+                })?;
+        }
+        _ => anyhow::bail!("Unknown main spec: '{}'", spec.main),
+    }
+    Ok(())
+}
 
 /// A single specification for status line entries
 #[derive(PartialEq, Debug)]
