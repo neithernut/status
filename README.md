@@ -1,39 +1,56 @@
 # Status line generator
 
-This little utility prints the current date and time alongside some values
-fetched from procfs, in regular intervals until it is terminated. It is meant
-for window managers and such relying on external programs for status info.
+This little utility prints user configurable information such as the current
+date and time or system information in regular intervals until it is terminated.
+It is meant for window managers and such relying on external programs for status
+info.
 
 This tool is meant purely for my own personal use. And it's only useful on
 Linux as it depends on `io_uring` and looks for some things in `/proc` which
 you'll probably not find on a BSD. Don't expect much development to happen
-here, aside maybe from me changing what things are included in the status.
+here, aside maybe from me changing what things can be included in the status.
 
 
 ## Usage
 
-    status [specifiers]
+    status [<specifier>...]
 
-`specifiers` being a string of specifiers for values to include in the status.
-The following specifiers are recognized:
+Each `specifier` being a specifier string of the form `<main>[:[<sub>,...]]`,
+i.e. some "main" specifier, optionally followed by a comma-separated list of
+sub-specifiers. The following "main" specifiers are recognised:
 
- * `p`: resource pressure information (cpu, io, mem)
- * `l`: system load (as in loadavg)
+ * `datetime`, `time`, `dt`, `t`: the local date and time (with a fixed format).
+   This specifier does not accept any sub-specifiers.
+ * `pressure`, `pres`, `psi`, `p`: resource pressure information (10min
+   averages). The following sub-specifiers are accepted:
+    * `cpu`, `c`: includes the CPU pressure indicator.
+    * `memory`, `mem`, `m`: includes the memory pressure indicator.
+    * `io`: includes the IO pressure indicator.
+   If no sub-specifiers are provided, the status line will include `cpu`,
+   `memory` and `io` in that order.
+ * `load`, `l`: system load (as in 10min loadavg). This specifier does not
+   accept any sub-specifiers.
 
-If no specifiers are specified, the status will only contain the time.
 
+## Background
 
-## Motivation
+The current version of `status` is a rewrite of a C program I wrote as a little
+exercise, apparently in 2022. That was when I used [sway](https://swaywm.org/)
+for some time. Sway doesn't come with a clock widget but the default config
+shipped (on some distros) does include a snippet with a little shell-script
+calling `date` once a second. For awesome, I already wrote a few widgets for
+displaying additional information such as system load, battery status and core
+temperature. Naturally, I wanted more or less with sway.
 
-So I recently came around using [sway](https://swaywm.org/). Sway doesn't come
-with a clock but the default config shipped (on some distros) does include a
-snippet with a little shell-script calling `date` once a second. For awesome, I
-already wrote a few widgets for displaying additional information such as system
-load, battery status and core temperature. Naturally, I wanted more or less with
-sway.
+After writing the initial C version, I considered supporting more than just
+time, load and pressure. However, the original, simple design proved to be too
+inflexible. And because I intended to actually use it and extend it, I rewrote
+it with a more flexible design. And I did so in Rust, both because it allows to
+specify some abstractions in a more sensible way and because I'll actually use
+this in "production", which means I do want it to adhere to some standard.
 
-I could just have written a shell-script and be done with it, but I decided to
-write a bit of C since it has been a while, and try out a few things:
+For the original C version back then, I had some objectives. And they still
+stood for the re-write.
 
 ### Update *on* the second
 
@@ -72,11 +89,9 @@ even earlier in the second!
 
 ## Build
 
-This thing depends on [liburing](https://github.com/axboe/liburing) 2.2 or
-later. Build using `make`, possibly supplying include and library paths for
-liburing via the usual make/environment variables. Be aware that the code may
-make use of some GNU extensions, and that the `Makefile` is making heavy use of
-built-in rules, some of which may be specific to GNU-make.
+This thing can be built using `cargo`, the Rust build tool. It depends on crates
+that are downloaded automatically during build, (see [Cargo.toml](./Cargo.toml)
+for details), and outside of that the aforementioned liburing.
 
 
 ## License
