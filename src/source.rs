@@ -13,7 +13,7 @@ pub trait Source {
     type Value;
 
     /// Type through which the value is provided
-    type Borrow<'a>: Borrow<Self::Value>
+    type Borrow<'a>: Borrow<Self::Value> = Self::Value
     where
         Self: 'a;
 
