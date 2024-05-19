@@ -41,7 +41,7 @@ fn apply(
         "datetime" | "time" | "dt" | "t" => {
             spec.no_subs()?;
             entries.push(entry::LocalTime.into_fmt())
-        },
+        }
         "load" | "l" => {
             spec.no_subs()?;
             let entry = installer
