@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 // Copyright Julian Ganz 2024
+#![feature(associated_type_defaults)]
 
 use anyhow::{Context, Error, Result};
 use rustix::{io::Errno, time};
