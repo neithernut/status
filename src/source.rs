@@ -54,8 +54,6 @@ pub struct PSI {
 impl Source for PSI {
     type Value = f32;
 
-    type Borrow<'a> = Self::Value;
-
     fn value(&self) -> Option<Self::Borrow<'_>> {
         self.data
     }
