@@ -9,7 +9,7 @@ license = "MIT"
 [dependencies]
 anyhow = "1.0"
 either = "1.12"
-iou = "0.3"
+io-uring = "0.6"
 libc = "0.2"
 rustix = {version = "0.38", features = ["time"]}
 
