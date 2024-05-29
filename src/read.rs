@@ -129,11 +129,6 @@ impl Ring {
             }
         }
     }
-
-    /// Retrieve the number of [Item]s
-    pub fn len(&self) -> usize {
-        self.items.len()
-    }
 }
 
 impl TryFrom<Vec<Item>> for Ring {
