@@ -145,11 +145,3 @@ impl Ring {
         }
     }
 }
-
-impl TryFrom<Vec<Item>> for Ring {
-    type Error = anyhow::Error;
-
-    fn try_from(items: Vec<Item>) -> Result<Self, Self::Error> {
-        Self::new(&io_uring::IoUring::builder(), items)
-    }
-}
