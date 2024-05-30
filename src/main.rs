@@ -16,7 +16,8 @@ fn main() -> Result<()> {
     let entries: entry::EntriesDisplay = spec::entries(&mut reads)
         .context("Could not parse entry specifications")?
         .into();
-    let mut ring: read::Ring = reads.try_into()?;
+    let mut builder = io_uring::IoUring::builder();
+    let mut ring = read::Ring::new(&builder, reads)?;
 
     // Timer ticking on wallclock seconds
     let timer = time::timerfd_create(time::TimerfdClockId::Realtime, time::TimerfdFlags::CLOEXEC)
