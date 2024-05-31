@@ -21,6 +21,16 @@ pub trait Source {
     fn value(&self) -> Option<Self::Borrow<'_>>;
 }
 
+impl<T: Clone> Source for Option<T> {
+    type Value = T;
+
+    type Borrow<'a> = Self::Value where Self::Value: 'a;
+
+    fn value(&self) -> Option<Self::Borrow<'_>> {
+        self.clone()
+    }
+}
+
 /// Something (usually a [Source]) that can be updated "directly"
 pub trait Updateable {
     /// Type with which this can be updated
