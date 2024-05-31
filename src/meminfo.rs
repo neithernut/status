@@ -69,6 +69,21 @@ impl fmt::Display for Item {
     }
 }
 
+impl std::str::FromStr for Item {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "total" | "tot" | "t" => Ok(Self::Total),
+            "free" | "f" => Ok(Self::Free),
+            "available" | "availible" | "avail" | "a" => Ok(Self::Avail),
+            "totalswap" | "totsw" | "ts" => Ok(Self::SwapTotal),
+            "freeswap" | "freesw" | "fs" => Ok(Self::SwapFree),
+            _ => Err(anyhow::anyhow!("Not a valid sub spec for PSI: {s}")),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
