@@ -21,6 +21,18 @@ pub trait Source {
     fn value(&self) -> Option<Self::Borrow<'_>>;
 }
 
+/// Something (usually a [Source]) that can be updated "directly"
+pub trait Updateable {
+    /// Type with which this can be updated
+    type Value;
+
+    /// Update with a new (valid) value
+    fn update(&mut self, value: Self::Value);
+
+    /// Signal the presence of an invalid value
+    fn update_invalid(&mut self) {}
+}
+
 /// Source for a single (parsed) word extracted from a buffer
 #[derive(Default)]
 pub struct Word<T: FromStr + Clone> {
