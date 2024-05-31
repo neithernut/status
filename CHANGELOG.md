@@ -11,6 +11,7 @@ is based on https://keepachangelog.com/en/1.1.0/.
 
 ### Changed
 
+- Introduce additional internal representations for entries for future use.
 - Make internal data sources composable, avoiding code duplication.
 - Create io-uring with flags that may reduce overall resource usage.
 - Reorder specifiers in [README](./README.md) to reflect the order they appear in the code
