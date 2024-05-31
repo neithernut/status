@@ -2,6 +2,8 @@
 // Copyright Julian Ganz 2024
 //! Utilities for handling `/proc/meminfo`
 
+use std::fmt;
+
 use crate::read::BufProcessor;
 use crate::source::Source;
 
@@ -52,6 +54,19 @@ pub enum Item {
     Avail,
     SwapTotal,
     SwapFree,
+}
+
+impl fmt::Display for Item {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let name = match self {
+            Self::Total => "tot",
+            Self::Free => "free",
+            Self::Avail => "avail",
+            Self::SwapTotal => "totswap",
+            Self::SwapFree => "free swap",
+        };
+        f.write_str(name)
+    }
 }
 
 #[cfg(test)]
