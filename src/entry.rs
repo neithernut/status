@@ -3,8 +3,10 @@
 //! Entries
 
 use std::fmt;
+use std::ops::{Div, Mul};
 
 use crate::read::Ref;
+use crate::scale;
 use crate::source::Source;
 
 /// A single entry of a status line
@@ -185,6 +187,29 @@ pub struct PrecisionDisplay<D: fmt::Display> {
 impl<D: fmt::Display> fmt::Display for PrecisionDisplay<D> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{0:.1$}", self.display, self.precision.into())
+    }
+}
+
+/// An [Entry] scaling a value
+pub struct AutoScaled<E: Entry, S: scale::Scale, T> {
+    entry: E,
+    scale: S,
+    min_value: T,
+}
+
+impl<E, S, T> Entry for AutoScaled<E, S, T>
+where
+    E: Entry,
+    for<'a> E::Display<'a>: Div<T> + From<<E::Display<'a> as Div<T>>::Output> + PartialOrd<T>,
+    S: scale::Scale + fmt::Display + 'static,
+    T: Mul<T, Output = T> + From<u16> + Copy + 'static,
+{
+    type Display<'a> = scale::Scaled<E::Display<'a>, S>;
+
+    fn display(&self) -> Option<Self::Display<'_>> {
+        self.entry
+            .display()
+            .map(|d| Self::Display::new(d, self.scale).max_scale(self.min_value))
     }
 }
 
