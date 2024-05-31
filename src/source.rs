@@ -43,6 +43,18 @@ pub trait Updateable {
     fn update_invalid(&mut self) {}
 }
 
+impl<T> Updateable for Option<T> {
+    type Value = T;
+
+    fn update(&mut self, value: Self::Value) {
+        *self = Some(value);
+    }
+
+    fn update_invalid(&mut self) {
+        *self = None
+    }
+}
+
 /// Source for a single (parsed) word extracted from a buffer
 #[derive(Default)]
 pub struct Word<T: FromStr + Clone> {
