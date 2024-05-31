@@ -70,6 +70,48 @@ pub trait Scale: Copy {
     fn step(self) -> Option<(Self, NonZeroU16)>;
 }
 
+/// Binary scale
+#[derive(Copy, Clone, Debug)]
+pub enum BinScale {
+    Ident,
+    Kibi,
+    Mebi,
+    Gibi,
+    Tebi,
+}
+
+impl Default for BinScale {
+    fn default() -> Self {
+        Self::Ident
+    }
+}
+
+impl Scale for BinScale {
+    fn step(self) -> Option<(Self, NonZeroU16)> {
+        let factor = NonZeroU16::new(1024)?;
+        match self {
+            Self::Ident => Some((Self::Kibi, factor)),
+            Self::Kibi => Some((Self::Mebi, factor)),
+            Self::Mebi => Some((Self::Gibi, factor)),
+            Self::Gibi => Some((Self::Tebi, factor)),
+            Self::Tebi => None,
+        }
+    }
+}
+
+impl fmt::Display for BinScale {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let prefix = match self {
+            Self::Ident => "",
+            Self::Kibi => "ki",
+            Self::Mebi => "Mi",
+            Self::Gibi => "Gi",
+            Self::Tebi => "Ti",
+        };
+        f.write_str(prefix)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
