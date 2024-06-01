@@ -27,6 +27,14 @@ pub trait Entry: Sized + 'static {
         Labeled { label, entry: self }
     }
 
+    /// Transform this entry into one with a unit
+    fn with_unit<U>(self, unit: U) -> WithUnit<Self, U>
+    where
+        U: fmt::Display + Sized + 'static,
+    {
+        WithUnit { entry: self, unit }
+    }
+
     /// Transform this entry into one with a specific precision
     fn with_precision(self, precision: u8) -> Precision<Self> {
         Precision {
@@ -400,5 +408,17 @@ mod tests {
             .into_fmt()]
         .into();
         assert_eq!(entries.to_string(), "3.14ki")
+    }
+
+    #[test]
+    fn with_unit_smoke() {
+        let entries: EntriesDisplay = vec![Some(5).with_unit("zurakos").into_fmt()].into();
+        assert_eq!(entries.to_string(), "5zurakos")
+    }
+
+    #[test]
+    fn with_unit_none() {
+        let entries: EntriesDisplay = vec![None::<u32>.with_unit("zurakos").into_fmt()].into();
+        assert_eq!(entries.to_string(), "???")
     }
 }
