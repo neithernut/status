@@ -21,6 +21,8 @@ sub-specifiers. The following "main" specifiers are recognised:
 
  * `datetime`, `time`, `dt`, `t`: the local date and time (with a fixed format).
    This specifier does not accept any sub-specifiers.
+ * `load`, `l`: system load (as in 10min loadavg). This specifier does not
+   accept any sub-specifiers.
  * `pressure`, `pres`, `psi`, `p`: resource pressure information (10min
    averages). The following sub-specifiers are accepted:
     * `cpu`, `c`: includes the CPU pressure indicator.
@@ -28,8 +30,6 @@ sub-specifiers. The following "main" specifiers are recognised:
     * `io`: includes the IO pressure indicator.
    If no sub-specifiers are provided, the status line will include `cpu`,
    `memory` and `io` in that order.
- * `load`, `l`: system load (as in 10min loadavg). This specifier does not
-   accept any sub-specifiers.
 
 
 ## Background
