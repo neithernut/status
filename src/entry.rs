@@ -104,7 +104,7 @@ impl fmt::Display for DateTime {
             f,
             "{:04}-{:02}-{:02} {:02}:{:02}:{:02}",
             self.0.tm_year + 1900,
-            self.0.tm_mon,
+            self.0.tm_mon + 1,
             self.0.tm_mday,
             self.0.tm_hour,
             self.0.tm_min,
