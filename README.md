@@ -30,6 +30,13 @@ sub-specifiers. The following "main" specifiers are recognised:
     * `io`: includes the IO pressure indicator.
    If no sub-specifiers are provided, the status line will include `cpu`,
    `memory` and `io` in that order.
+ * `memory`, `mem`, `m`: memory usage information. The following sub-specifiers
+   are accepted:
+   * `total`, `tot`, `t`: the total system memory (RAM)
+   * `free`, `f`: unused system memory (RAM)
+   * `available`, `availible`, `avail`, `a`: available system memory (RAM)
+   * `totalswap`, `totsw`, `ts`: total swap
+   * `freeswap`, `freesw`, `fs`: unused swap
 
 
 ## Background
