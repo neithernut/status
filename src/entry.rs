@@ -210,6 +210,35 @@ impl<L: fmt::Display, D: fmt::Display> fmt::Display for LabeledDisplay<'_, L, D>
     }
 }
 
+/// An [Entry] with a unit
+pub struct WithUnit<E: Entry, U: fmt::Display + Sized + 'static> {
+    entry: E,
+    unit: U,
+}
+
+impl<E: Entry, U: fmt::Display + Sized + 'static> Entry for WithUnit<E, U> {
+    type Display<'a> = WithUnitDisplay<'a, E::Display<'a>, U>;
+
+    fn display(&self) -> Option<Self::Display<'_>> {
+        self.entry.display().map(|d| Self::Display {
+            display: d,
+            unit: &self.unit,
+        })
+    }
+}
+
+/// A [fmt::Display] with a unit attached
+pub struct WithUnitDisplay<'u, D: fmt::Display, U: fmt::Display> {
+    display: D,
+    unit: &'u U,
+}
+
+impl<D: fmt::Display, U: fmt::Display> fmt::Display for WithUnitDisplay<'_, D, U> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}{}", self.display, self.unit)
+    }
+}
+
 /// An [Entry] with a specified precision
 pub struct Precision<E: Entry> {
     entry: E,
