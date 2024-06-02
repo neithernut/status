@@ -200,3 +200,26 @@ impl<D: fmt::Display> fmt::Display for OptionDisplay<D> {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn entry_display_smoke() {
+        let entries: EntriesDisplay = vec![
+            Some("a").into_fmt(),
+            Some("bc").into_fmt(),
+            None::<&str>.into_fmt(),
+            Some("def").into_fmt(),
+        ]
+        .into();
+        assert_eq!(entries.to_string(), "a bc ??? def")
+    }
+
+    #[test]
+    fn entry_display_empty() {
+        let entries: EntriesDisplay = Vec::new().into();
+        assert_eq!(entries.to_string(), "")
+    }
+}
