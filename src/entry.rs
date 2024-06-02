@@ -222,4 +222,16 @@ mod tests {
         let entries: EntriesDisplay = Vec::new().into();
         assert_eq!(entries.to_string(), "")
     }
+
+    #[test]
+    fn label_smoke() {
+        let entries: EntriesDisplay = vec![Some("a").with_label("val").into_fmt()].into();
+        assert_eq!(entries.to_string(), "val: a")
+    }
+
+    #[test]
+    fn label_empty() {
+        let entries: EntriesDisplay = vec![None::<&str>.with_label("val").into_fmt()].into();
+        assert_eq!(entries.to_string(), "val: ???")
+    }
 }
