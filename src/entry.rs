@@ -63,6 +63,14 @@ impl Entry for Option<&'static str> {
     }
 }
 
+impl Entry for Option<f32> {
+    type Display<'a> = f32;
+
+    fn display(&self) -> Option<Self::Display<'_>> {
+        *self
+    }
+}
+
 /// Function type formatting a specific entry
 pub type Formatter = Box<dyn Fn(&mut fmt::Formatter<'_>) -> fmt::Result>;
 
