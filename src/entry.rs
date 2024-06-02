@@ -205,6 +205,8 @@ impl<D: fmt::Display> fmt::Display for OptionDisplay<D> {
 mod tests {
     use super::*;
 
+    use std::f32::consts::PI;
+
     #[test]
     fn entry_display_smoke() {
         let entries: EntriesDisplay = vec![
@@ -233,5 +235,29 @@ mod tests {
     fn label_empty() {
         let entries: EntriesDisplay = vec![None::<&str>.with_label("val").into_fmt()].into();
         assert_eq!(entries.to_string(), "val: ???")
+    }
+
+    #[test]
+    fn precision_0() {
+        let entries: EntriesDisplay = vec![Some(PI).with_precision(0).into_fmt()].into();
+        assert_eq!(entries.to_string(), "3")
+    }
+
+    #[test]
+    fn precision_1() {
+        let entries: EntriesDisplay = vec![Some(PI).with_precision(1).into_fmt()].into();
+        assert_eq!(entries.to_string(), "3.1")
+    }
+
+    #[test]
+    fn precision_2() {
+        let entries: EntriesDisplay = vec![Some(PI).with_precision(2).into_fmt()].into();
+        assert_eq!(entries.to_string(), "3.14")
+    }
+
+    #[test]
+    fn precision_none() {
+        let entries: EntriesDisplay = vec![None::<f32>.with_precision(2).into_fmt()].into();
+        assert_eq!(entries.to_string(), "???")
     }
 }
