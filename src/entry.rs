@@ -55,6 +55,14 @@ where
     }
 }
 
+impl Entry for Option<&'static str> {
+    type Display<'a> = &'a str;
+
+    fn display(&self) -> Option<Self::Display<'_>> {
+        *self
+    }
+}
+
 /// Function type formatting a specific entry
 pub type Formatter = Box<dyn Fn(&mut fmt::Formatter<'_>) -> fmt::Result>;
 
