@@ -11,7 +11,6 @@ use anyhow::{Context, Result};
 
 use crate::entry;
 use crate::read;
-use crate::source;
 
 /// Create entries based on command line arguments
 ///
@@ -45,7 +44,7 @@ fn apply(
         "load" | "l" => {
             spec.no_subs()?;
             let entry = installer
-                .default::<source::Word<f32>>("/proc/loadavg", 64)?
+                .default::<read::Word<Option<f32>>>("/proc/loadavg", 64)?
                 .with_precision(2)
                 .with_label("load")
                 .into_fmt();
@@ -56,7 +55,7 @@ fn apply(
                 .try_for_each(|i| {
                     let indicator = i?;
                     let entry = installer
-                        .default::<source::PSI>(indicator.path(), 128)?
+                        .default::<read::PSI>(indicator.path(), 128)?
                         .with_precision(2)
                         .with_label(indicator)
                         .into_fmt();

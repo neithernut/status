@@ -5,8 +5,11 @@
 use std::fs::File;
 use std::os::fd::AsRawFd;
 use std::pin::Pin;
+use std::str::FromStr;
 
 use anyhow::{Context, Result};
+
+use crate::source;
 
 /// Processor for buffer contents
 ///
@@ -14,6 +17,67 @@ use anyhow::{Context, Result};
 /// read contents via [BufProcessor::process].
 pub trait BufProcessor {
     fn process(&mut self, buf: &[u8]);
+}
+
+/// [BufProcessor] extracting a single (parsed) word
+#[derive(Default)]
+pub struct Word<U>(U);
+
+impl<U> BufProcessor for Word<U>
+where
+    U: source::Updateable,
+    U::Value: FromStr,
+{
+    fn process(&mut self, buf: &[u8]) {
+        let data = buf
+            .split(u8::is_ascii_whitespace)
+            .find(|w| !w.is_empty())
+            .and_then(|w| std::str::from_utf8(w).ok())
+            .and_then(|s| s.parse().ok());
+        if let Some(data) = data {
+            self.0.update(data)
+        } else {
+            self.0.update_invalid()
+        }
+    }
+}
+
+impl<U: source::Source> source::Source for Word<U> {
+    type Value = U::Value;
+
+    type Borrow<'a> = U::Borrow<'a> where U: 'a;
+
+    fn value(&self) -> Option<Self::Borrow<'_>> {
+        self.0.value()
+    }
+}
+
+/// [BufProcessor] for a 10min average PSI info
+#[derive(Default)]
+pub struct PSI {
+    data: Option<f32>,
+}
+
+impl BufProcessor for PSI {
+    fn process(&mut self, buf: &[u8]) {
+        self.data = buf
+            .split(|c| *c == b'\n')
+            .filter_map(|l| l.strip_prefix(b"some"))
+            .flat_map(|l| l.split(u8::is_ascii_whitespace))
+            .filter_map(|w| w.strip_prefix(b"avg10="))
+            .find_map(|w| std::str::from_utf8(w).ok())
+            .and_then(|s| s.parse().ok());
+    }
+}
+
+impl source::Source for PSI {
+    type Value = f32;
+
+    type Borrow<'a> = Self::Value;
+
+    fn value(&self) -> Option<Self::Borrow<'_>> {
+        self.data
+    }
 }
 
 /// Convenience type for [std::rc::Rc]s wrapping [std::cell::RefCell]
@@ -143,5 +207,51 @@ impl Ring {
                 break Ok(());
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use source::Source;
+
+    #[test]
+    fn word_single() {
+        let mut processor = Word::<Option<u64>>::default();
+        processor.process(b"123");
+        assert_eq!(processor.value(), Some(123));
+    }
+
+    #[test]
+    fn word_multiple() {
+        let mut processor = Word::<Option<u64>>::default();
+        processor.process(b"123 456");
+        assert_eq!(processor.value(), Some(123));
+    }
+
+    #[test]
+    fn word_invalid_single() {
+        let mut processor = Word::<Option<u64>>::default();
+        processor.process(b"foo");
+        assert_eq!(processor.value(), None);
+    }
+
+    #[test]
+    fn word_invalid_multiple() {
+        let mut processor = Word::<Option<u64>>::default();
+        processor.process(b"foo 123");
+        assert_eq!(processor.value(), None);
+    }
+
+    #[test]
+    fn psi_smoke() {
+        let buf = concat!(
+            "some avg10=1.23 avg60=4.56 avg300=7.89 total=123456\n",
+            "full avg10=2.34 avg60=5.67 avg300=8.90 total=789123\n",
+        );
+        let mut processor = PSI::default();
+        processor.process(buf.as_ref());
+        assert_eq!(processor.value(), Some(1.23));
     }
 }
