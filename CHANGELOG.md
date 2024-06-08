@@ -1,7 +1,7 @@
 # Changelog
 
 All notable changes to this project will be documented in this file. Its format
-is based on [https://keepachangelog.com/en/1.1.0/].
+is based on https://keepachangelog.com/en/1.1.0/.
 
 ## Unreleased
 
