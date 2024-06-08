@@ -55,6 +55,22 @@ where
     }
 }
 
+impl Entry for Option<&'static str> {
+    type Display<'a> = &'a str;
+
+    fn display(&self) -> Option<Self::Display<'_>> {
+        *self
+    }
+}
+
+impl Entry for Option<f32> {
+    type Display<'a> = f32;
+
+    fn display(&self) -> Option<Self::Display<'_>> {
+        *self
+    }
+}
+
 /// Function type formatting a specific entry
 pub type Formatter = Box<dyn Fn(&mut fmt::Formatter<'_>) -> fmt::Result>;
 
@@ -182,5 +198,66 @@ impl<D: fmt::Display> fmt::Display for OptionDisplay<D> {
         } else {
             f.write_str("???")
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use std::f32::consts::PI;
+
+    #[test]
+    fn entry_display_smoke() {
+        let entries: EntriesDisplay = vec![
+            Some("a").into_fmt(),
+            Some("bc").into_fmt(),
+            None::<&str>.into_fmt(),
+            Some("def").into_fmt(),
+        ]
+        .into();
+        assert_eq!(entries.to_string(), "a bc ??? def")
+    }
+
+    #[test]
+    fn entry_display_empty() {
+        let entries: EntriesDisplay = Vec::new().into();
+        assert_eq!(entries.to_string(), "")
+    }
+
+    #[test]
+    fn label_smoke() {
+        let entries: EntriesDisplay = vec![Some("a").with_label("val").into_fmt()].into();
+        assert_eq!(entries.to_string(), "val: a")
+    }
+
+    #[test]
+    fn label_empty() {
+        let entries: EntriesDisplay = vec![None::<&str>.with_label("val").into_fmt()].into();
+        assert_eq!(entries.to_string(), "val: ???")
+    }
+
+    #[test]
+    fn precision_0() {
+        let entries: EntriesDisplay = vec![Some(PI).with_precision(0).into_fmt()].into();
+        assert_eq!(entries.to_string(), "3")
+    }
+
+    #[test]
+    fn precision_1() {
+        let entries: EntriesDisplay = vec![Some(PI).with_precision(1).into_fmt()].into();
+        assert_eq!(entries.to_string(), "3.1")
+    }
+
+    #[test]
+    fn precision_2() {
+        let entries: EntriesDisplay = vec![Some(PI).with_precision(2).into_fmt()].into();
+        assert_eq!(entries.to_string(), "3.14")
+    }
+
+    #[test]
+    fn precision_none() {
+        let entries: EntriesDisplay = vec![None::<f32>.with_precision(2).into_fmt()].into();
+        assert_eq!(entries.to_string(), "???")
     }
 }
