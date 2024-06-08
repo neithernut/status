@@ -75,6 +75,21 @@ pub struct Ring {
 }
 
 impl Ring {
+    /// Create a new ring with the given `items` using the `ring_builder`
+    pub fn new(ring_builder: &io_uring::Builder, items: impl Into<Vec<Item>>) -> Result<Self> {
+        let mut items = items.into();
+        items.shrink_to_fit();
+        let num = items
+            .len()
+            .max(1)
+            .try_into()
+            .context("Too many items for one ring")?;
+        ring_builder
+            .build(num)
+            .context("Could not create IO uring")
+            .map(|ring| Self { ring, items })
+    }
+
     /// Prepare submission queue events for all [Item]s
     pub fn prepare(&mut self) -> Result<()> {
         let mut sq = self.ring.submission();
@@ -128,20 +143,5 @@ impl Ring {
                 break Ok(());
             }
         }
-    }
-}
-
-impl TryFrom<Vec<Item>> for Ring {
-    type Error = anyhow::Error;
-
-    fn try_from(mut items: Vec<Item>) -> Result<Self, Self::Error> {
-        items.shrink_to_fit();
-        let num = items
-            .len()
-            .max(1)
-            .try_into()
-            .context("Too many items for one ring")?;
-        let ring = io_uring::IoUring::new(num).context("Could not create IO uring")?;
-        Ok(Self { ring, items })
     }
 }
