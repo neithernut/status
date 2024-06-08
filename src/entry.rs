@@ -3,8 +3,10 @@
 //! Entries
 
 use std::fmt;
+use std::ops::{Div, Mul};
 
 use crate::read::Ref;
+use crate::scale;
 use crate::source::Source;
 
 /// A single entry of a status line
@@ -33,6 +35,15 @@ pub trait Entry: Sized + 'static {
         }
     }
 
+    /// Transform this entry into one with automatic scaling
+    fn autoscaled<V, S: scale::Scale>(self, min_value: V, scale: S) -> AutoScaled<Self, S, V> {
+        AutoScaled {
+            entry: self,
+            scale,
+            min_value,
+        }
+    }
+
     /// Transform this entry into a [Formatter]
     fn into_fmt(self) -> Formatter {
         Box::new(move |f| fmt::Display::fmt(&OptionDisplay(self.display()), f))
@@ -57,6 +68,14 @@ where
 
 impl Entry for Option<&'static str> {
     type Display<'a> = &'a str;
+
+    fn display(&self) -> Option<Self::Display<'_>> {
+        *self
+    }
+}
+
+impl Entry for Option<u32> {
+    type Display<'a> = u32;
 
     fn display(&self) -> Option<Self::Display<'_>> {
         *self
@@ -220,6 +239,29 @@ impl<D: fmt::Display> fmt::Display for PrecisionDisplay<D> {
     }
 }
 
+/// An [Entry] scaling a value
+pub struct AutoScaled<E: Entry, S: scale::Scale, T> {
+    entry: E,
+    scale: S,
+    min_value: T,
+}
+
+impl<E, S, T> Entry for AutoScaled<E, S, T>
+where
+    E: Entry,
+    for<'a> E::Display<'a>: Div<T> + From<<E::Display<'a> as Div<T>>::Output> + PartialOrd<T>,
+    S: scale::Scale + fmt::Display + 'static,
+    T: Mul<T, Output = T> + From<u16> + Copy + 'static,
+{
+    type Display<'a> = scale::Scaled<E::Display<'a>, S>;
+
+    fn display(&self) -> Option<Self::Display<'_>> {
+        self.entry
+            .display()
+            .map(|d| Self::Display::new(d, self.scale).max_scale(self.min_value))
+    }
+}
+
 /// Helper for formatting [Option]s with [None] as `???`
 struct OptionDisplay<D: fmt::Display>(pub Option<D>);
 
@@ -234,6 +276,7 @@ impl<D: fmt::Display> fmt::Display for OptionDisplay<D> {
 }
 
 #[cfg(test)]
+#[allow(non_snake_case)]
 mod tests {
     use super::*;
 
@@ -291,5 +334,42 @@ mod tests {
     fn precision_none() {
         let entries: EntriesDisplay = vec![None::<f32>.with_precision(2).into_fmt()].into();
         assert_eq!(entries.to_string(), "???")
+    }
+
+    #[test]
+    fn autoscaled_4ki() {
+        let entries: EntriesDisplay = vec![Some(4 * 1024)
+            .autoscaled(2, scale::BinScale::default())
+            .into_fmt()]
+        .into();
+        assert_eq!(entries.to_string(), "4ki")
+    }
+
+    #[test]
+    fn autoscaled_2Mi() {
+        let entries: EntriesDisplay = vec![Some(2 * 1024 * 1024)
+            .autoscaled(2, scale::BinScale::default())
+            .into_fmt()]
+        .into();
+        assert_eq!(entries.to_string(), "2048ki")
+    }
+
+    #[test]
+    fn autoscaled_none() {
+        let entries: EntriesDisplay = vec![None::<u32>
+            .autoscaled(2, scale::BinScale::default())
+            .into_fmt()]
+        .into();
+        assert_eq!(entries.to_string(), "???")
+    }
+
+    #[test]
+    fn autoscaled_piki() {
+        let entries: EntriesDisplay = vec![Some(PI * 1024.)
+            .autoscaled(1.5f32, scale::BinScale::default())
+            .with_precision(2)
+            .into_fmt()]
+        .into();
+        assert_eq!(entries.to_string(), "3.14ki")
     }
 }
