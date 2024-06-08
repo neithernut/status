@@ -3,7 +3,6 @@
 //! Sources for typed values
 
 use std::borrow::Borrow;
-use std::str::FromStr;
 
 use crate::read::BufProcessor;
 
@@ -52,32 +51,6 @@ impl<T> Updateable for Option<T> {
 
     fn update_invalid(&mut self) {
         *self = None
-    }
-}
-
-/// Source for a single (parsed) word extracted from a buffer
-#[derive(Default)]
-pub struct Word<T: FromStr + Clone> {
-    data: Option<T>,
-}
-
-impl<T: FromStr + Clone> Source for Word<T> {
-    type Value = T;
-
-    type Borrow<'a> = Self::Value where Self::Value: 'a;
-
-    fn value(&self) -> Option<Self::Borrow<'_>> {
-        self.data.clone()
-    }
-}
-
-impl<T: FromStr + Clone> BufProcessor for Word<T> {
-    fn process(&mut self, buf: &[u8]) {
-        self.data = buf
-            .split(u8::is_ascii_whitespace)
-            .find(|w| !w.is_empty())
-            .and_then(|w| std::str::from_utf8(w).ok())
-            .and_then(|s| s.parse().ok());
     }
 }
 
