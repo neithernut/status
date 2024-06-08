@@ -11,7 +11,6 @@ use anyhow::{Context, Result};
 
 use crate::entry;
 use crate::read;
-use crate::source;
 
 /// Create entries based on command line arguments
 ///
@@ -56,7 +55,7 @@ fn apply(
                 .try_for_each(|i| {
                     let indicator = i?;
                     let entry = installer
-                        .default::<source::PSI>(indicator.path(), 128)?
+                        .default::<read::PSI>(indicator.path(), 128)?
                         .with_precision(2)
                         .with_label(indicator)
                         .into_fmt();
