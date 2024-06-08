@@ -45,7 +45,7 @@ fn apply(
         "load" | "l" => {
             spec.no_subs()?;
             let entry = installer
-                .default::<source::Word<f32>>("/proc/loadavg", 64)?
+                .default::<read::Word<Option<f32>>>("/proc/loadavg", 64)?
                 .with_precision(2)
                 .with_label("load")
                 .into_fmt();
