@@ -243,4 +243,15 @@ mod tests {
         processor.process(b"foo 123");
         assert_eq!(processor.value(), None);
     }
+
+    #[test]
+    fn psi_smoke() {
+        let buf = concat!(
+            "some avg10=1.23 avg60=4.56 avg300=7.89 total=123456\n",
+            "full avg10=2.34 avg60=5.67 avg300=8.90 total=789123\n",
+        );
+        let mut processor = PSI::default();
+        processor.process(buf.as_ref());
+        assert_eq!(processor.value(), Some(1.23));
+    }
 }
