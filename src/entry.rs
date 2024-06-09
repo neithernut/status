@@ -98,6 +98,23 @@ impl Entry for Option<f32> {
     }
 }
 
+/// Create an [Entry] mapping a [Source]
+pub fn mapped<S, F, D>(source: Ref<S>, func: F) -> impl for<'a> Entry<Display<'a> = D>
+where
+    S: Source + 'static,
+    F: Fn(&S::Value) -> Option<D> + 'static,
+    D: fmt::Display + 'static
+{
+    move || {
+        source
+            .borrow()
+            .value()
+            .as_ref()
+            .map(std::borrow::Borrow::borrow)
+            .and_then(&func)
+    }
+}
+
 /// Function type formatting a specific entry
 pub type Formatter = Box<dyn Fn(&mut fmt::Formatter<'_>) -> fmt::Result>;
 
