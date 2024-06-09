@@ -7,6 +7,7 @@ is based on https://keepachangelog.com/en/1.1.0/.
 
 ### Added
 
+- Add support for including memory usage information in the status.
 - Add tests for internal entry structures.
 
 ### Changed

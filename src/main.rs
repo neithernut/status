@@ -5,6 +5,7 @@ use anyhow::{Context, Error, Result};
 use rustix::{io::Errno, time};
 
 mod entry;
+mod meminfo;
 mod read;
 mod scale;
 mod source;

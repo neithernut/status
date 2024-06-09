@@ -10,7 +10,9 @@ use std::str::FromStr;
 use anyhow::{Context, Result};
 
 use crate::entry;
+use crate::meminfo;
 use crate::read;
+use crate::scale;
 
 /// Create entries based on command line arguments
 ///
@@ -58,6 +60,21 @@ fn apply(
                         .default::<read::PSI>(indicator.path(), 128)?
                         .with_precision(2)
                         .with_label(indicator)
+                        .into_fmt();
+                    entries.push(entry);
+                    anyhow::Ok(())
+                })?;
+        }
+        "memory" | "mem" | "m" => {
+            let source = installer.default::<meminfo::MemInfo>("/proc/meminfo", 1536)?;
+            spec.parsed_subs_or([Ok(meminfo::Item::Avail), Ok(meminfo::Item::Free)])
+                .try_for_each(|i| {
+                    let item = i?;
+                    let entry = entry::mapped(source.clone(), move |i| i[item].map(|i| i as f64))
+                        .autoscaled(1.5, scale::BinScale::Kibi)
+                        .with_precision(1)
+                        .with_unit('B')
+                        .with_label(item)
                         .into_fmt();
                     entries.push(entry);
                     anyhow::Ok(())
