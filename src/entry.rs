@@ -197,38 +197,6 @@ impl fmt::Display for DateTime {
     }
 }
 
-/// An [Entry] mapping a [Source]
-pub struct Mapped<S: Source, F: Fn(&S::Value) -> Option<D>, D: fmt::Display> {
-    source: Ref<S>,
-    func: F,
-}
-
-impl<S: Source, F: Fn(&S::Value) -> Option<D>, D: fmt::Display> Mapped<S, F, D> {
-    /// Create a new mapped entry
-    pub fn new(source: Ref<S>, func: F) -> Self {
-        Self { source, func }
-    }
-}
-
-impl<S, F, D> Entry for Mapped<S, F, D>
-where
-    S: Source,
-    F: Fn(&S::Value) -> Option<D>,
-    D: fmt::Display,
-    Self: 'static,
-{
-    type Display<'a> = D;
-
-    fn display(&self) -> Option<Self::Display<'_>> {
-        self.source
-            .borrow()
-            .value()
-            .as_ref()
-            .map(std::borrow::Borrow::borrow)
-            .and_then(&self.func)
-    }
-}
-
 /// A labeled [Entry]
 pub struct Labeled<L: fmt::Display + Sized + 'static, E: Entry> {
     label: L,
