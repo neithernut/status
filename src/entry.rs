@@ -115,6 +115,30 @@ where
     }
 }
 
+/// Create an [Entry] zipping two [Source]s
+pub fn zipped<S1, S2, F, D>(
+    source1: Ref<S1>,
+    source2: Ref<S2>,
+    func: F,
+) -> impl for<'a> Entry<Display<'a> = D>
+where
+    S1: Source + 'static,
+    S2: Source + 'static,
+    F: Fn(&S1::Value, &S2::Value) -> Option<D> + 'static,
+    D: fmt::Display + 'static
+{
+    use std::borrow::Borrow;
+    use std::cell::RefCell;
+
+    move || {
+        Option::zip(
+            RefCell::borrow(&source1).value(),
+            RefCell::borrow(&source2).value(),
+        )
+        .and_then(|(v1, v2)| func(v1.borrow(), v2.borrow()))
+    }
+}
+
 /// Function type formatting a specific entry
 pub type Formatter = Box<dyn Fn(&mut fmt::Formatter<'_>) -> fmt::Result>;
 
