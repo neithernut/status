@@ -112,6 +112,44 @@ impl fmt::Display for BinScale {
     }
 }
 
+/// Time/duration scale
+#[derive(Copy, Clone, Debug)]
+pub enum Duration {
+    Second,
+    Minute,
+    Hour,
+    Day,
+}
+
+impl Default for Duration {
+    fn default() -> Self {
+        Self::Second
+    }
+}
+
+impl Scale for Duration {
+    fn step(self) -> Option<(Self, NonZeroU16)> {
+        match self {
+            Self::Second => NonZeroU16::new(60).map(|f| ((Self::Minute, f))),
+            Self::Minute => NonZeroU16::new(60).map(|f| ((Self::Hour, f))),
+            Self::Hour => NonZeroU16::new(24).map(|f| ((Self::Day, f))),
+            Self::Day => None,
+        }
+    }
+}
+
+impl fmt::Display for Duration {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let unit = match self {
+            Self::Second => "s",
+            Self::Minute => "min",
+            Self::Hour => "h",
+            Self::Day => "d",
+        };
+        f.write_str(unit)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
