@@ -130,9 +130,9 @@ impl Default for Duration {
 impl Scale for Duration {
     fn step(self) -> Option<(Self, NonZeroU16)> {
         match self {
-            Self::Second => NonZeroU16::new(60).map(|f| ((Self::Minute, f))),
-            Self::Minute => NonZeroU16::new(60).map(|f| ((Self::Hour, f))),
-            Self::Hour => NonZeroU16::new(24).map(|f| ((Self::Day, f))),
+            Self::Second => NonZeroU16::new(60).map(|f| (Self::Minute, f)),
+            Self::Minute => NonZeroU16::new(60).map(|f| (Self::Hour, f)),
+            Self::Hour => NonZeroU16::new(24).map(|f| (Self::Day, f)),
             Self::Day => None,
         }
     }
