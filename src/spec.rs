@@ -13,6 +13,7 @@ use anyhow::{Context, Result};
 
 use crate::entry::{self, Entry};
 use crate::meminfo;
+use crate::power;
 use crate::read;
 use crate::scale;
 
@@ -47,6 +48,7 @@ fn apply(
         "load" | "l" => apply_load(spec, entries, installer),
         "pressure" | "pres" | "psi" | "p" => apply_psi(spec, entries, installer),
         "memory" | "mem" | "m" => apply_meminfo(spec, entries, installer),
+        "battery" | "bat" | "b" => apply_battery(spec, entries, installer),
         _ => anyhow::bail!("Unknown main spec: '{}'", spec.main),
     }
 }
@@ -104,6 +106,39 @@ fn apply_meminfo(
                 .into_fmt();
             entries.push(entry::label(item));
             entries.push(entry);
+            Ok(())
+        })
+}
+
+/// Aplly a battery [Spec]
+fn apply_battery(
+    spec: Spec<'_>,
+    entries: &mut Vec<Box<dyn fmt::Display>>,
+    installer: &mut ReadItemInstaller<'_>,
+) -> Result<()> {
+    use read::Simple;
+
+    spec.parsed_subs_or(power::supplies()?)
+        .filter_map(Result::ok)
+        .filter(|p| p.kind().ok() == Some(power::Kind::Battery))
+        .try_for_each(|p| {
+            let full = installer.install_file(
+                p.charge_full_file()?,
+                16,
+                Simple::<Option<f32>>::new_default(u8::is_ascii_whitespace),
+            )?;
+            let now = installer.install_file(
+                p.charge_now_file()?,
+                16,
+                Simple::<Option<f32>>::new_default(u8::is_ascii_whitespace),
+            )?;
+            let soc = entry::zipped(full, now, |f, n| Some(100. * n / f))
+                .with_precision(0)
+                .with_unit('%')
+                .into_fmt();
+
+            entries.push(entry::label(p.name().to_owned()));
+            entries.push(soc);
             Ok(())
         })
 }
