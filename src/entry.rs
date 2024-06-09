@@ -66,6 +66,14 @@ where
     }
 }
 
+impl<F: Fn() -> Option<D> + 'static, D: fmt::Display + 'static> Entry for F {
+    type Display<'a> = D;
+
+    fn display(&self) -> Option<Self::Display<'_>> {
+        self()
+    }
+}
+
 impl Entry for Option<&'static str> {
     type Display<'a> = &'a str;
 
