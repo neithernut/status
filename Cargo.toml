@@ -13,6 +13,9 @@ io-uring = "0.6"
 libc = "0.2"
 rustix = {version = "0.38", features = ["time"]}
 
+[dev-dependencies]
+mock_instant = "0.5"
+
 [profile.release]
 opt-level = "s"
 strip = true

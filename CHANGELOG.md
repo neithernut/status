@@ -11,6 +11,8 @@ is based on https://keepachangelog.com/en/1.1.0/.
 
 ### Changed
 
+- Add `mock_instant` as a direct development dependency for use in tests.
+- Introduce utility for moving averages for composition of data sources.
 - Introduce internal utilities for autoscaling values, such as memory sizes.
 - Introduce additional internal representations for entries for future use.
 - Make internal data sources composable, avoiding code duplication.
