@@ -74,6 +74,14 @@ where
     }
 }
 
+impl<F: Fn() -> Option<D> + 'static, D: fmt::Display + 'static> Entry for F {
+    type Display<'a> = D;
+
+    fn display(&self) -> Option<Self::Display<'_>> {
+        self()
+    }
+}
+
 impl Entry for Option<&'static str> {
     type Display<'a> = &'a str;
 
@@ -95,6 +103,47 @@ impl Entry for Option<f32> {
 
     fn display(&self) -> Option<Self::Display<'_>> {
         *self
+    }
+}
+
+/// Create an [Entry] mapping a [Source]
+pub fn mapped<S, F, D>(source: Ref<S>, func: F) -> impl for<'a> Entry<Display<'a> = D>
+where
+    S: Source + 'static,
+    F: Fn(&S::Value) -> Option<D> + 'static,
+    D: fmt::Display + 'static
+{
+    move || {
+        source
+            .borrow()
+            .value()
+            .as_ref()
+            .map(std::borrow::Borrow::borrow)
+            .and_then(&func)
+    }
+}
+
+/// Create an [Entry] zipping two [Source]s
+pub fn zipped<S1, S2, F, D>(
+    source1: Ref<S1>,
+    source2: Ref<S2>,
+    func: F,
+) -> impl for<'a> Entry<Display<'a> = D>
+where
+    S1: Source + 'static,
+    S2: Source + 'static,
+    F: Fn(&S1::Value, &S2::Value) -> Option<D> + 'static,
+    D: fmt::Display + 'static
+{
+    use std::borrow::Borrow;
+    use std::cell::RefCell;
+
+    move || {
+        Option::zip(
+            RefCell::borrow(&source1).value(),
+            RefCell::borrow(&source2).value(),
+        )
+        .and_then(|(v1, v2)| func(v1.borrow(), v2.borrow()))
     }
 }
 
@@ -153,38 +202,6 @@ impl fmt::Display for DateTime {
             self.0.tm_min,
             self.0.tm_sec,
         )
-    }
-}
-
-/// An [Entry] mapping a [Source]
-pub struct Mapped<S: Source, F: Fn(&S::Value) -> Option<D>, D: fmt::Display> {
-    source: Ref<S>,
-    func: F,
-}
-
-impl<S: Source, F: Fn(&S::Value) -> Option<D>, D: fmt::Display> Mapped<S, F, D> {
-    /// Create a new mapped entry
-    pub fn new(source: Ref<S>, func: F) -> Self {
-        Self { source, func }
-    }
-}
-
-impl<S, F, D> Entry for Mapped<S, F, D>
-where
-    S: Source,
-    F: Fn(&S::Value) -> Option<D>,
-    D: fmt::Display,
-    Self: 'static,
-{
-    type Display<'a> = D;
-
-    fn display(&self) -> Option<Self::Display<'_>> {
-        self.source
-            .borrow()
-            .value()
-            .as_ref()
-            .map(std::borrow::Borrow::borrow)
-            .and_then(&self.func)
     }
 }
 
