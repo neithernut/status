@@ -111,7 +111,7 @@ pub fn mapped<S, F, D>(source: Ref<S>, func: F) -> impl for<'a> Entry<Display<'a
 where
     S: Source + 'static,
     F: Fn(&S::Value) -> Option<D> + 'static,
-    D: fmt::Display + 'static
+    D: fmt::Display + 'static,
 {
     move || {
         source
@@ -133,7 +133,7 @@ where
     S1: Source + 'static,
     S2: Source + 'static,
     F: Fn(&S1::Value, &S2::Value) -> Option<D> + 'static,
-    D: fmt::Display + 'static
+    D: fmt::Display + 'static,
 {
     use std::borrow::Borrow;
     use std::cell::RefCell;
