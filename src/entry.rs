@@ -27,6 +27,14 @@ pub trait Entry: Sized + 'static {
         Labeled { label, entry: self }
     }
 
+    /// Transform this entry into one with a unit
+    fn with_unit<U>(self, unit: U) -> WithUnit<Self, U>
+    where
+        U: fmt::Display + Sized + 'static,
+    {
+        WithUnit { entry: self, unit }
+    }
+
     /// Transform this entry into one with a specific precision
     fn with_precision(self, precision: u8) -> Precision<Self> {
         Precision {
@@ -210,6 +218,35 @@ impl<L: fmt::Display, D: fmt::Display> fmt::Display for LabeledDisplay<'_, L, D>
     }
 }
 
+/// An [Entry] with a unit
+pub struct WithUnit<E: Entry, U: fmt::Display + Sized + 'static> {
+    entry: E,
+    unit: U,
+}
+
+impl<E: Entry, U: fmt::Display + Sized + 'static> Entry for WithUnit<E, U> {
+    type Display<'a> = WithUnitDisplay<'a, E::Display<'a>, U>;
+
+    fn display(&self) -> Option<Self::Display<'_>> {
+        self.entry.display().map(|d| Self::Display {
+            display: d,
+            unit: &self.unit,
+        })
+    }
+}
+
+/// A [fmt::Display] with a unit attached
+pub struct WithUnitDisplay<'u, D: fmt::Display, U: fmt::Display> {
+    display: D,
+    unit: &'u U,
+}
+
+impl<D: fmt::Display, U: fmt::Display> fmt::Display for WithUnitDisplay<'_, D, U> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}{}", self.display, self.unit)
+    }
+}
+
 /// An [Entry] with a specified precision
 pub struct Precision<E: Entry> {
     entry: E,
@@ -371,5 +408,17 @@ mod tests {
             .into_fmt()]
         .into();
         assert_eq!(entries.to_string(), "3.14ki")
+    }
+
+    #[test]
+    fn with_unit_smoke() {
+        let entries: EntriesDisplay = vec![Some(5).with_unit("zurakos").into_fmt()].into();
+        assert_eq!(entries.to_string(), "5zurakos")
+    }
+
+    #[test]
+    fn with_unit_none() {
+        let entries: EntriesDisplay = vec![None::<u32>.with_unit("zurakos").into_fmt()].into();
+        assert_eq!(entries.to_string(), "???")
     }
 }
