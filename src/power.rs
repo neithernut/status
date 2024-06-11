@@ -29,6 +29,27 @@ impl Supply {
         buf.trim().parse().context("Could not parse type")
     }
 
+    /// Open the `charge_now` file for this source
+    ///
+    /// The file contains the current charge, in µAh.
+    pub fn charge_now_file(&self) -> Result<File> {
+        self.open_file("charge_now")
+    }
+
+    /// Open the `charge_full` file for this source
+    ///
+    /// The file contains the charge when the battery is full, in µAh.
+    pub fn charge_full_file(&self) -> Result<File> {
+        self.open_file("charge_full")
+    }
+
+    /// Open the `charge_empty` file for this source
+    ///
+    /// The file contains the charge when the battery is empty, in µAh.
+    pub fn charge_empty_file(&self) -> Result<File> {
+        self.open_file("charge_empty")
+    }
+
     /// Open a specific file
     fn open_file(&self, name: &str) -> Result<File> {
         self.dir
