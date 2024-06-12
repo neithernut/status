@@ -4,7 +4,8 @@
 
 use std::collections::hash_map::{self, HashMap};
 use std::fmt;
-use std::path::{Path, PathBuf};
+use std::os::linux::fs::MetadataExt;
+use std::path::Path;
 use std::str::FromStr;
 
 use anyhow::{Context, Result};
@@ -178,7 +179,7 @@ impl fmt::Display for PSI {
 /// Installer for [read::Item]s, making sure we only have one per path
 struct ReadItemInstaller<'i> {
     items: &'i mut Vec<read::Item>,
-    processors: HashMap<PathBuf, std::rc::Rc<dyn std::any::Any>>,
+    processors: HashMap<(u64, u64), std::rc::Rc<dyn std::any::Any>>,
 }
 
 impl<'i> ReadItemInstaller<'i> {
@@ -193,7 +194,7 @@ impl<'i> ReadItemInstaller<'i> {
     /// Install a [read::BufProcessor]'s [Default] value
     pub fn default<P: read::BufProcessor + Default + 'static>(
         &mut self,
-        path: impl Into<PathBuf>,
+        path: impl AsRef<Path>,
         buf_size: usize,
     ) -> Result<read::Ref<P>> {
         self.install(path, buf_size, Default::default())
@@ -202,11 +203,15 @@ impl<'i> ReadItemInstaller<'i> {
     /// Install a given [read::BufProcessor]
     pub fn install<P: read::BufProcessor + 'static>(
         &mut self,
-        path: impl Into<PathBuf>,
+        path: impl AsRef<Path>,
         buf_size: usize,
         processor: P,
     ) -> Result<read::Ref<P>> {
-        match self.processors.entry(path.into()) {
+        let path = path.as_ref();
+        let metadata = std::fs::metadata(path)
+            .with_context(|| format!("Could not retrieve metadata for '{}'", path.display()))?;
+        let key = (metadata.st_dev(), metadata.st_ino());
+        match self.processors.entry(key) {
             hash_map::Entry::Occupied(entry) => {
                 entry.get().clone().downcast().map_err(|_| {
                     anyhow::anyhow!("Existing processor for file has incompatible type")
@@ -214,8 +219,8 @@ impl<'i> ReadItemInstaller<'i> {
             }
             hash_map::Entry::Vacant(entry) => {
                 let processor: read::Ref<P> = read::Ref::new(processor.into());
-                let file = std::fs::File::open(entry.key())
-                    .with_context(|| format!("Could not open {}", entry.key().display()))?;
+                let file = std::fs::File::open(path)
+                    .with_context(|| format!("Could not open {}", path.display()))?;
                 self.items
                     .push(read::Item::new(file, buf_size, processor.clone()));
                 entry.insert(processor.clone());
