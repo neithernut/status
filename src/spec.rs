@@ -4,6 +4,7 @@
 
 use std::collections::hash_map::{self, HashMap};
 use std::fmt;
+use std::fs::File;
 use std::os::linux::fs::MetadataExt;
 use std::path::Path;
 use std::str::FromStr;
@@ -200,6 +201,15 @@ impl<'i> ReadItemInstaller<'i> {
         self.install(path, buf_size, Default::default())
     }
 
+    /// Install a [read::BufProcessor]'s [Default] value
+    pub fn default_file<P: read::BufProcessor + Default + 'static>(
+        &mut self,
+        file: File,
+        buf_size: usize,
+    ) -> Result<read::Ref<P>> {
+        self.install_file(file, buf_size, Default::default())
+    }
+
     /// Install a given [read::BufProcessor]
     pub fn install<P: read::BufProcessor + 'static>(
         &mut self,
@@ -208,8 +218,21 @@ impl<'i> ReadItemInstaller<'i> {
         processor: P,
     ) -> Result<read::Ref<P>> {
         let path = path.as_ref();
-        let metadata = std::fs::metadata(path)
-            .with_context(|| format!("Could not retrieve metadata for '{}'", path.display()))?;
+        let file =
+            File::open(path).with_context(|| format!("Could not open {}", path.display()))?;
+        self.install_file(file, buf_size, processor)
+    }
+
+    /// Install a given [read::BufProcessor]
+    pub fn install_file<P: read::BufProcessor + 'static>(
+        &mut self,
+        file: File,
+        buf_size: usize,
+        processor: P,
+    ) -> Result<read::Ref<P>> {
+        let metadata = file
+            .metadata()
+            .context("Could not retrieve metadata for file")?;
         let key = (metadata.st_dev(), metadata.st_ino());
         match self.processors.entry(key) {
             hash_map::Entry::Occupied(entry) => {
@@ -219,8 +242,6 @@ impl<'i> ReadItemInstaller<'i> {
             }
             hash_map::Entry::Vacant(entry) => {
                 let processor: read::Ref<P> = read::Ref::new(processor.into());
-                let file = std::fs::File::open(path)
-                    .with_context(|| format!("Could not open {}", path.display()))?;
                 self.items
                     .push(read::Item::new(file, buf_size, processor.clone()));
                 entry.insert(processor.clone());
