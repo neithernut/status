@@ -149,3 +149,19 @@ impl std::str::FromStr for Status {
         }
     }
 }
+
+/// Get all power supplies
+pub fn supplies() -> Result<impl Iterator<Item = Result<Supply>>> {
+    let list = std::fs::read_dir("/sys/class/power_supply/")
+        .context("Could not access /sys/class/power_supply/")?
+        .map(|e| {
+            let entry = e.context("Could not read entry")?;
+            let name = entry
+                .file_name()
+                .into_string()
+                .unwrap_or_else(|n| n.to_string_lossy().into());
+            let path = entry.path();
+            Supply::new(name, path)
+        });
+    Ok(list)
+}
