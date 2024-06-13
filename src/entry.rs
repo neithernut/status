@@ -361,86 +361,82 @@ mod tests {
 
     #[test]
     fn label_smoke() {
-        let entries: EntriesDisplay = vec![Some("a").with_label("val").into_fmt()].into();
-        assert_eq!(entries.to_string(), "val: a")
+        let s = Some("a").with_label("val").into_fmt().to_string();
+        assert_eq!(s, "val: a")
     }
 
     #[test]
     fn label_empty() {
-        let entries: EntriesDisplay = vec![None::<&str>.with_label("val").into_fmt()].into();
-        assert_eq!(entries.to_string(), "val: ???")
+        let s = None::<&str>.with_label("val").into_fmt().to_string();
+        assert_eq!(s, "val: ???")
     }
 
     #[test]
     fn precision_0() {
-        let entries: EntriesDisplay = vec![Some(PI).with_precision(0).into_fmt()].into();
-        assert_eq!(entries.to_string(), "3")
+        assert_eq!(Some(PI).with_precision(0).into_fmt().to_string(), "3")
     }
 
     #[test]
     fn precision_1() {
-        let entries: EntriesDisplay = vec![Some(PI).with_precision(1).into_fmt()].into();
-        assert_eq!(entries.to_string(), "3.1")
+        assert_eq!(Some(PI).with_precision(1).into_fmt().to_string(), "3.1")
     }
 
     #[test]
     fn precision_2() {
-        let entries: EntriesDisplay = vec![Some(PI).with_precision(2).into_fmt()].into();
-        assert_eq!(entries.to_string(), "3.14")
+        assert_eq!(Some(PI).with_precision(2).into_fmt().to_string(), "3.14")
     }
 
     #[test]
     fn precision_none() {
-        let entries: EntriesDisplay = vec![None::<f32>.with_precision(2).into_fmt()].into();
-        assert_eq!(entries.to_string(), "???")
+        assert_eq!(None::<f32>.with_precision(2).into_fmt().to_string(), "???")
     }
 
     #[test]
     fn autoscaled_4ki() {
-        let entries: EntriesDisplay = vec![Some(4 * 1024)
+        let s = Some(4 * 1024)
             .autoscaled(2, scale::BinScale::default())
-            .into_fmt()]
-        .into();
-        assert_eq!(entries.to_string(), "4ki")
+            .into_fmt()
+            .to_string();
+        assert_eq!(s, "4ki")
     }
 
     #[test]
     fn autoscaled_2Mi() {
-        let entries: EntriesDisplay = vec![Some(2 * 1024 * 1024)
+        let s = Some(2 * 1024 * 1024)
             .autoscaled(2, scale::BinScale::default())
-            .into_fmt()]
-        .into();
-        assert_eq!(entries.to_string(), "2048ki")
+            .into_fmt()
+            .to_string();
+        assert_eq!(s, "2048ki")
     }
 
     #[test]
     fn autoscaled_none() {
-        let entries: EntriesDisplay = vec![None::<u32>
+        let s = None::<u32>
             .autoscaled(2, scale::BinScale::default())
-            .into_fmt()]
-        .into();
-        assert_eq!(entries.to_string(), "???")
+            .into_fmt()
+            .to_string();
+        assert_eq!(s, "???")
     }
 
     #[test]
     fn autoscaled_piki() {
-        let entries: EntriesDisplay = vec![Some(PI * 1024.)
+        let s = Some(PI * 1024.)
             .autoscaled(1.5f32, scale::BinScale::default())
             .with_precision(2)
-            .into_fmt()]
-        .into();
-        assert_eq!(entries.to_string(), "3.14ki")
+            .into_fmt()
+            .to_string();
+        assert_eq!(s, "3.14ki")
     }
 
     #[test]
     fn with_unit_smoke() {
-        let entries: EntriesDisplay = vec![Some(5).with_unit("zurakos").into_fmt()].into();
-        assert_eq!(entries.to_string(), "5zurakos")
+        let s = Some(5).with_unit("zurakos").into_fmt().to_string();
+        assert_eq!(s, "5zurakos")
     }
 
     #[test]
     fn with_unit_none() {
-        let entries: EntriesDisplay = vec![None::<u32>.with_unit("zurakos").into_fmt()].into();
-        assert_eq!(entries.to_string(), "???")
+        let s = None::<u32>.with_unit("zurakos").into_fmt().to_string();
+        assert_eq!(s, "???")
     }
 }
