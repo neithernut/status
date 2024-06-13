@@ -158,9 +158,6 @@ impl<F: Fn(&mut fmt::Formatter<'_>) -> fmt::Result> fmt::Display for FormatterFn
     }
 }
 
-/// Function type formatting a specific entry
-pub type Formatter = Box<dyn Fn(&mut fmt::Formatter<'_>) -> fmt::Result>;
-
 /// [fmt::Display] for displaying a space-separated list of entries
 pub struct EntriesDisplay(Vec<Box<dyn fmt::Display>>);
 
