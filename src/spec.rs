@@ -19,7 +19,7 @@ use crate::scale;
 /// Create entries based on command line arguments
 ///
 /// Associated [read::Item]s will be appended to `items`.
-pub fn entries(items: &mut Vec<read::Item>) -> Result<Vec<entry::Formatter>> {
+pub fn entries(items: &mut Vec<read::Item>) -> Result<Vec<Box<dyn fmt::Display>>> {
     let mut res = Default::default();
     let mut items = ReadItemInstaller::new(items);
     std::env::args().skip(1).try_for_each(|a| {
@@ -35,7 +35,7 @@ pub fn entries(items: &mut Vec<read::Item>) -> Result<Vec<entry::Formatter>> {
 /// Create entris and install [read::Item]s for a single given [Spec].
 fn apply(
     spec: Spec<'_>,
-    entries: &mut Vec<entry::Formatter>,
+    entries: &mut Vec<Box<dyn fmt::Display>>,
     installer: &mut ReadItemInstaller<'_>,
 ) -> Result<()> {
     use entry::Entry;

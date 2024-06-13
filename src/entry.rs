@@ -52,9 +52,11 @@ pub trait Entry: Sized + 'static {
         }
     }
 
-    /// Transform this entry into a [Formatter]
-    fn into_fmt(self) -> Formatter {
-        Box::new(move |f| fmt::Display::fmt(&OptionDisplay(self.display()), f))
+    /// Transform this entry into a [fmt::Display]
+    fn into_fmt(self) -> Box<dyn fmt::Display> {
+        use fmt::Display;
+
+        Box::new(FormatterFn(move |f| OptionDisplay(self.display()).fmt(f)))
     }
 }
 
@@ -160,10 +162,10 @@ impl<F: Fn(&mut fmt::Formatter<'_>) -> fmt::Result> fmt::Display for FormatterFn
 pub type Formatter = Box<dyn Fn(&mut fmt::Formatter<'_>) -> fmt::Result>;
 
 /// [fmt::Display] for displaying a space-separated list of entries
-pub struct EntriesDisplay(Vec<Formatter>);
+pub struct EntriesDisplay(Vec<Box<dyn fmt::Display>>);
 
-impl From<Vec<Formatter>> for EntriesDisplay {
-    fn from(formatters: Vec<Formatter>) -> Self {
+impl From<Vec<Box<dyn fmt::Display>>> for EntriesDisplay {
+    fn from(formatters: Vec<Box<dyn fmt::Display>>) -> Self {
         Self(formatters)
     }
 }
@@ -175,11 +177,8 @@ impl fmt::Display for EntriesDisplay {
             return Ok(());
         };
 
-        first(f)?;
-        entries.try_for_each(|e| {
-            f.write_str(" ")?;
-            e(f)
-        })
+        first.fmt(f)?;
+        entries.try_for_each(|e| write!(f, " {e}"))
     }
 }
 
