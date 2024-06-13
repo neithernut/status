@@ -147,6 +147,15 @@ where
     }
 }
 
+/// Utility for formatting a "formatting `Fn`"
+struct FormatterFn<F: Fn(&mut fmt::Formatter<'_>) -> fmt::Result>(F);
+
+impl<F: Fn(&mut fmt::Formatter<'_>) -> fmt::Result> fmt::Display for FormatterFn<F> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        (self.0)(f)
+    }
+}
+
 /// Function type formatting a specific entry
 pub type Formatter = Box<dyn Fn(&mut fmt::Formatter<'_>) -> fmt::Result>;
 
