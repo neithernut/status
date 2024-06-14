@@ -50,6 +50,13 @@ impl Supply {
         self.open_file("charge_empty")
     }
 
+    /// Open the `current_now` file for this source
+    ///
+    /// The file contains the charge when the battery is empty, in µA.
+    pub fn current_now_file(&self) -> Result<File> {
+        self.open_file("current_now")
+    }
+
     /// Open a specific file
     fn open_file(&self, name: &str) -> Result<File> {
         self.dir
