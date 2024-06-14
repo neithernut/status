@@ -122,6 +122,19 @@ pub enum Status {
     Full,
 }
 
+impl Status {
+    /// Get a symbol corresponding to the battery status
+    pub const fn symbol(self) -> &'static str {
+        match self {
+            Self::Unknown => "❓️",
+            Self::Charging => "⚡️",
+            Self::Discharging => "🔋",
+            Self::NotCharging => "⭐️",
+            Self::Full => "✨️",
+        }
+    }
+}
+
 impl std::str::FromStr for Status {
     type Err = anyhow::Error;
 
