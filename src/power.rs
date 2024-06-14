@@ -111,3 +111,28 @@ impl std::str::FromStr for Kind {
         }
     }
 }
+
+/// Power supply status
+#[derive(Copy, Clone, PartialEq)]
+pub enum Status {
+    Unknown,
+    Charging,
+    Discharging,
+    NotCharging,
+    Full,
+}
+
+impl std::str::FromStr for Status {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "Unknown" => Ok(Self::Unknown),
+            "Charging" => Ok(Self::Charging),
+            "Discharging" => Ok(Self::Discharging),
+            "Not charging" => Ok(Self::NotCharging),
+            "Full" => Ok(Self::Full),
+            s => Err(anyhow::anyhow!("Unknown status '{s}'")),
+        }
+    }
+}
