@@ -57,6 +57,11 @@ impl Supply {
         self.open_file("current_now")
     }
 
+    /// Open the `status` file for this source
+    pub fn status_file(&self) -> Result<File> {
+        self.open_file("status")
+    }
+
     /// Open a specific file
     fn open_file(&self, name: &str) -> Result<File> {
         self.dir
