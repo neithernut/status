@@ -63,7 +63,7 @@ impl<T> Updateable for Option<T> {
 ///
 /// This [Source] will yield an average over all values with which it was
 /// updated over a defined timespan.
-pub struct MovingAverage<T> {
+pub struct MovingAverage<T = f32> {
     current: Option<(T, Instant)>,
     span: Duration,
 }
