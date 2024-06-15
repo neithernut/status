@@ -19,36 +19,52 @@ pub trait BufProcessor {
     fn process(&mut self, buf: &[u8]);
 }
 
-/// [BufProcessor] extracting a single (parsed) word
-#[derive(Default)]
-pub struct Word<U>(U);
+/// [BufProcessor] extracting a single (parsed) substring
+pub struct Simple<U> {
+    source: U,
+    split_fn: fn(&u8) -> bool,
+}
 
-impl<U> BufProcessor for Word<U>
+impl<U> Simple<U> {
+    /// Create a new simple [BufProcessor]
+    pub fn new(source: U, split_fn: fn(&u8) -> bool) -> Self {
+        Self { source, split_fn }
+    }
+
+    pub fn new_default(split_fn: fn(&u8) -> bool) -> Self
+    where
+        U: Default,
+    {
+        Self::new(Default::default(), split_fn)
+    }
+}
+
+impl<U> BufProcessor for Simple<U>
 where
     U: source::Updateable,
     U::Value: FromStr,
 {
     fn process(&mut self, buf: &[u8]) {
         let data = buf
-            .split(u8::is_ascii_whitespace)
+            .split(self.split_fn)
             .find(|w| !w.is_empty())
             .and_then(|w| std::str::from_utf8(w).ok())
             .and_then(|s| s.parse().ok());
         if let Some(data) = data {
-            self.0.update(data)
+            self.source.update(data)
         } else {
-            self.0.update_invalid()
+            self.source.update_invalid()
         }
     }
 }
 
-impl<U: source::Source> source::Source for Word<U> {
+impl<U: source::Source> source::Source for Simple<U> {
     type Value = U::Value;
 
     type Borrow<'a> = U::Borrow<'a> where U: 'a;
 
     fn value(&self) -> Option<Self::Borrow<'_>> {
-        self.0.value()
+        self.source.value()
     }
 }
 
@@ -217,29 +233,29 @@ mod tests {
     use source::Source;
 
     #[test]
-    fn word_single() {
-        let mut processor = Word::<Option<u64>>::default();
+    fn simple_single() {
+        let mut processor = Simple::<Option<u64>>::new_default(u8::is_ascii_whitespace);
         processor.process(b"123");
         assert_eq!(processor.value(), Some(123));
     }
 
     #[test]
-    fn word_multiple() {
-        let mut processor = Word::<Option<u64>>::default();
+    fn simple_multiple() {
+        let mut processor = Simple::<Option<u64>>::new_default(u8::is_ascii_whitespace);
         processor.process(b"123 456");
         assert_eq!(processor.value(), Some(123));
     }
 
     #[test]
-    fn word_invalid_single() {
-        let mut processor = Word::<Option<u64>>::default();
+    fn simple_invalid_single() {
+        let mut processor = Simple::<Option<u64>>::new_default(u8::is_ascii_whitespace);
         processor.process(b"foo");
         assert_eq!(processor.value(), None);
     }
 
     #[test]
-    fn word_invalid_multiple() {
-        let mut processor = Word::<Option<u64>>::default();
+    fn simple_invalid_multiple() {
+        let mut processor = Simple::<Option<u64>>::new_default(u8::is_ascii_whitespace);
         processor.process(b"foo 123");
         assert_eq!(processor.value(), None);
     }

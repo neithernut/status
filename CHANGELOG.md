@@ -17,6 +17,8 @@ is based on https://keepachangelog.com/en/1.1.0/.
 
 ### Changed
 
+- Replace internal utility `Word` for extracting whitespace-delimited portions
+  with the more general `Simple`, which allows for other delimiters.
 - Add `mock_instant` as a direct development dependency for use in tests.
 - Make internal data sources composable, avoiding code duplication.
 - Create io-uring with flags that may reduce overall resource usage.
