@@ -44,19 +44,7 @@ fn apply(
             entries.push(entry::LocalTime.into_fmt())
         }
         "load" | "l" => apply_load(spec, entries, installer)?,
-        "pressure" | "pres" | "psi" | "p" => {
-            spec.parsed_subs_or([Ok(PSI::Cpu), Ok(PSI::Memory), Ok(PSI::Io)])
-                .try_for_each(|i| {
-                    let indicator = i?;
-                    let entry = installer
-                        .default::<read::PSI>(indicator.path(), 128)?
-                        .with_precision(2)
-                        .with_label(indicator)
-                        .into_fmt();
-                    entries.push(entry);
-                    anyhow::Ok(())
-                })?;
-        }
+        "pressure" | "pres" | "psi" | "p" => apply_psi(spec, entries, installer)?,
         "memory" | "mem" | "m" => {
             let source = installer.default::<meminfo::MemInfo>("/proc/meminfo", 1536)?;
             spec.parsed_subs_or([Ok(meminfo::Item::Avail), Ok(meminfo::Item::Free)])
@@ -92,6 +80,25 @@ fn apply_load(
         .into_fmt();
     entries.push(entry);
     Ok(())
+}
+
+/// Aplly a pressure [Spec]
+fn apply_psi(
+    spec: Spec<'_>,
+    entries: &mut Vec<Box<dyn fmt::Display>>,
+    installer: &mut ReadItemInstaller<'_>,
+) -> Result<()> {
+    spec.parsed_subs_or([Ok(PSI::Cpu), Ok(PSI::Memory), Ok(PSI::Io)])
+        .try_for_each(|i| {
+            let indicator = i?;
+            let entry = installer
+                .default::<read::PSI>(indicator.path(), 128)?
+                .with_precision(2)
+                .with_label(indicator)
+                .into_fmt();
+            entries.push(entry);
+            Ok(())
+        })
 }
 
 /// A single specification for status line entries
