@@ -62,8 +62,8 @@ fn apply_load(
     let entry = installer
         .install("/proc/loadavg", 64, read)?
         .with_precision(2)
-        .with_label("load")
         .into_fmt();
+    entries.push(entry::label("load"));
     entries.push(entry);
     Ok(())
 }
@@ -80,8 +80,8 @@ fn apply_psi(
             let entry = installer
                 .default::<read::PSI>(indicator.path(), 128)?
                 .with_precision(2)
-                .with_label(indicator)
                 .into_fmt();
+            entries.push(entry::label(indicator));
             entries.push(entry);
             Ok(())
         })
@@ -101,8 +101,8 @@ fn apply_meminfo(
                 .autoscaled(1.5, scale::BinScale::Kibi)
                 .with_precision(1)
                 .with_unit('B')
-                .with_label(item)
                 .into_fmt();
+            entries.push(entry::label(item));
             entries.push(entry);
             Ok(())
         })
