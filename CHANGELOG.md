@@ -7,6 +7,8 @@ is based on https://keepachangelog.com/en/1.1.0/.
 
 ### Added
 
+- Support handling of files with uncertain paths in internal utility
+  `ReadItemInstaller`.
 - Add support for including memory usage information in the status.
 - Introduce utility for moving averages for composition of data sources.
 - Introduce internal utilities for autoscaling values, such as memory sizes.
