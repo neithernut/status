@@ -43,19 +43,7 @@ fn apply(
             spec.no_subs()?;
             entries.push(entry::LocalTime.into_fmt())
         }
-        "load" | "l" => {
-            spec.no_subs()?;
-            let entry = installer
-                .install(
-                    "/proc/loadavg",
-                    64,
-                    read::Simple::<Option<f32>>::new_default(u8::is_ascii_whitespace),
-                )?
-                .with_precision(2)
-                .with_label("load")
-                .into_fmt();
-            entries.push(entry);
-        }
+        "load" | "l" => apply_load(spec, entries, installer)?,
         "pressure" | "pres" | "psi" | "p" => {
             spec.parsed_subs_or([Ok(PSI::Cpu), Ok(PSI::Memory), Ok(PSI::Io)])
                 .try_for_each(|i| {
@@ -86,6 +74,23 @@ fn apply(
         }
         _ => anyhow::bail!("Unknown main spec: '{}'", spec.main),
     }
+    Ok(())
+}
+
+/// Aplly a load [Spec]
+fn apply_load(
+    spec: Spec<'_>,
+    entries: &mut Vec<Box<dyn fmt::Display>>,
+    installer: &mut ReadItemInstaller<'_>,
+) -> Result<()> {
+    spec.no_subs()?;
+    let read = read::Simple::<Option<f32>>::new_default(u8::is_ascii_whitespace);
+    let entry = installer
+        .install("/proc/loadavg", 64, read)?
+        .with_precision(2)
+        .with_label("load")
+        .into_fmt();
+    entries.push(entry);
     Ok(())
 }
 
