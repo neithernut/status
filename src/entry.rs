@@ -149,6 +149,11 @@ where
     }
 }
 
+/// Create a label from a [fmt::Display]
+pub fn label(display: impl fmt::Display + 'static) -> Box<dyn fmt::Display> {
+    Box::new(FormatterFn(move |f| write!(f, "{display}:")))
+}
+
 /// Utility for formatting a "formatting `Fn`"
 struct FormatterFn<F: Fn(&mut fmt::Formatter<'_>) -> fmt::Result>(F);
 
