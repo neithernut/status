@@ -11,7 +11,7 @@ use std::str::FromStr;
 
 use anyhow::{Context, Result};
 
-use crate::entry;
+use crate::entry::{self, Entry};
 use crate::meminfo;
 use crate::read;
 use crate::scale;
@@ -38,8 +38,6 @@ fn apply(
     entries: &mut Vec<Box<dyn fmt::Display>>,
     installer: &mut ReadItemInstaller<'_>,
 ) -> Result<()> {
-    use entry::Entry;
-
     match spec.main {
         "datetime" | "time" | "dt" | "t" => {
             spec.no_subs()?;
