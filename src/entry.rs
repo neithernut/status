@@ -19,14 +19,6 @@ pub trait Entry: Sized + 'static {
     /// Get a display representation for this entry
     fn display(&self) -> Option<Self::Display<'_>>;
 
-    /// Transform this entry into a labeled one
-    fn with_label<L>(self, label: L) -> Labeled<L, Self>
-    where
-        L: fmt::Display + Sized + 'static,
-    {
-        Labeled { label, entry: self }
-    }
-
     /// Transform this entry into one with a unit
     fn with_unit<U>(self, unit: U) -> WithUnit<Self, U>
     where
