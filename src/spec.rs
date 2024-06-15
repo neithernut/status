@@ -45,21 +45,7 @@ fn apply(
         }
         "load" | "l" => apply_load(spec, entries, installer)?,
         "pressure" | "pres" | "psi" | "p" => apply_psi(spec, entries, installer)?,
-        "memory" | "mem" | "m" => {
-            let source = installer.default::<meminfo::MemInfo>("/proc/meminfo", 1536)?;
-            spec.parsed_subs_or([Ok(meminfo::Item::Avail), Ok(meminfo::Item::Free)])
-                .try_for_each(|i| {
-                    let item = i?;
-                    let entry = entry::mapped(source.clone(), move |i| i[item].map(|i| i as f64))
-                        .autoscaled(1.5, scale::BinScale::Kibi)
-                        .with_precision(1)
-                        .with_unit('B')
-                        .with_label(item)
-                        .into_fmt();
-                    entries.push(entry);
-                    anyhow::Ok(())
-                })?;
-        }
+        "memory" | "mem" | "m" => apply_meminfo(spec, entries, installer)?,
         _ => anyhow::bail!("Unknown main spec: '{}'", spec.main),
     }
     Ok(())
@@ -95,6 +81,27 @@ fn apply_psi(
                 .default::<read::PSI>(indicator.path(), 128)?
                 .with_precision(2)
                 .with_label(indicator)
+                .into_fmt();
+            entries.push(entry);
+            Ok(())
+        })
+}
+
+/// Aplly a meminfo [Spec]
+fn apply_meminfo(
+    spec: Spec<'_>,
+    entries: &mut Vec<Box<dyn fmt::Display>>,
+    installer: &mut ReadItemInstaller<'_>,
+) -> Result<()> {
+    let source = installer.default::<meminfo::MemInfo>("/proc/meminfo", 1536)?;
+    spec.parsed_subs_or([Ok(meminfo::Item::Avail), Ok(meminfo::Item::Free)])
+        .try_for_each(|i| {
+            let item = i?;
+            let entry = entry::mapped(source.clone(), move |i| i[item].map(|i| i as f64))
+                .autoscaled(1.5, scale::BinScale::Kibi)
+                .with_precision(1)
+                .with_unit('B')
+                .with_label(item)
                 .into_fmt();
             entries.push(entry);
             Ok(())
