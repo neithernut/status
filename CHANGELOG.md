@@ -22,8 +22,8 @@ is based on https://keepachangelog.com/en/1.1.0/.
 - Add `mock_instant` as a direct development dependency for use in tests.
 - Make internal data sources composable, avoiding code duplication.
 - Create io-uring with flags that may reduce overall resource usage.
-- Reorder specifiers in [README](./README.md) to reflect the order they appear in the code
-  parsing them.
+- Reorder specifiers in [README](./README.md) to reflect the order they appear
+  in the code parsing them.
 
 
 ## 0.1.0 - 2024-06-01
