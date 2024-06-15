@@ -17,6 +17,7 @@ is based on https://keepachangelog.com/en/1.1.0/.
 
 ### Changed
 
+- Refactor specification application: move parts to separate functions.
 - Change the mechanism through which entries are formatted internally.
 - Replace internal utility `Word` for extracting whitespace-delimited portions
   with the more general `Simple`, which allows for other delimiters.

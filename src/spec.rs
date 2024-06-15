@@ -11,7 +11,7 @@ use std::str::FromStr;
 
 use anyhow::{Context, Result};
 
-use crate::entry;
+use crate::entry::{self, Entry};
 use crate::meminfo;
 use crate::read;
 use crate::scale;
@@ -38,57 +38,74 @@ fn apply(
     entries: &mut Vec<Box<dyn fmt::Display>>,
     installer: &mut ReadItemInstaller<'_>,
 ) -> Result<()> {
-    use entry::Entry;
-
     match spec.main {
         "datetime" | "time" | "dt" | "t" => {
             spec.no_subs()?;
-            entries.push(entry::LocalTime.into_fmt())
+            entries.push(entry::LocalTime.into_fmt());
+            Ok(())
         }
-        "load" | "l" => {
-            spec.no_subs()?;
-            let entry = installer
-                .install(
-                    "/proc/loadavg",
-                    64,
-                    read::Simple::<Option<f32>>::new_default(u8::is_ascii_whitespace),
-                )?
-                .with_precision(2)
-                .with_label("load")
-                .into_fmt();
-            entries.push(entry);
-        }
-        "pressure" | "pres" | "psi" | "p" => {
-            spec.parsed_subs_or([Ok(PSI::Cpu), Ok(PSI::Memory), Ok(PSI::Io)])
-                .try_for_each(|i| {
-                    let indicator = i?;
-                    let entry = installer
-                        .default::<read::PSI>(indicator.path(), 128)?
-                        .with_precision(2)
-                        .with_label(indicator)
-                        .into_fmt();
-                    entries.push(entry);
-                    anyhow::Ok(())
-                })?;
-        }
-        "memory" | "mem" | "m" => {
-            let source = installer.default::<meminfo::MemInfo>("/proc/meminfo", 1536)?;
-            spec.parsed_subs_or([Ok(meminfo::Item::Avail), Ok(meminfo::Item::Free)])
-                .try_for_each(|i| {
-                    let item = i?;
-                    let entry = entry::mapped(source.clone(), move |i| i[item].map(|i| i as f64))
-                        .autoscaled(1.5, scale::BinScale::Kibi)
-                        .with_precision(1)
-                        .with_unit('B')
-                        .with_label(item)
-                        .into_fmt();
-                    entries.push(entry);
-                    anyhow::Ok(())
-                })?;
-        }
+        "load" | "l" => apply_load(spec, entries, installer),
+        "pressure" | "pres" | "psi" | "p" => apply_psi(spec, entries, installer),
+        "memory" | "mem" | "m" => apply_meminfo(spec, entries, installer),
         _ => anyhow::bail!("Unknown main spec: '{}'", spec.main),
     }
+}
+
+/// Aplly a load [Spec]
+fn apply_load(
+    spec: Spec<'_>,
+    entries: &mut Vec<Box<dyn fmt::Display>>,
+    installer: &mut ReadItemInstaller<'_>,
+) -> Result<()> {
+    spec.no_subs()?;
+    let read = read::Simple::<Option<f32>>::new_default(u8::is_ascii_whitespace);
+    let entry = installer
+        .install("/proc/loadavg", 64, read)?
+        .with_precision(2)
+        .with_label("load")
+        .into_fmt();
+    entries.push(entry);
     Ok(())
+}
+
+/// Aplly a pressure [Spec]
+fn apply_psi(
+    spec: Spec<'_>,
+    entries: &mut Vec<Box<dyn fmt::Display>>,
+    installer: &mut ReadItemInstaller<'_>,
+) -> Result<()> {
+    spec.parsed_subs_or([Ok(PSI::Cpu), Ok(PSI::Memory), Ok(PSI::Io)])
+        .try_for_each(|i| {
+            let indicator = i?;
+            let entry = installer
+                .default::<read::PSI>(indicator.path(), 128)?
+                .with_precision(2)
+                .with_label(indicator)
+                .into_fmt();
+            entries.push(entry);
+            Ok(())
+        })
+}
+
+/// Aplly a meminfo [Spec]
+fn apply_meminfo(
+    spec: Spec<'_>,
+    entries: &mut Vec<Box<dyn fmt::Display>>,
+    installer: &mut ReadItemInstaller<'_>,
+) -> Result<()> {
+    let source = installer.default::<meminfo::MemInfo>("/proc/meminfo", 1536)?;
+    spec.parsed_subs_or([Ok(meminfo::Item::Avail), Ok(meminfo::Item::Free)])
+        .try_for_each(|i| {
+            let item = i?;
+            let entry = entry::mapped(source.clone(), move |i| i[item].map(|i| i as f64))
+                .autoscaled(1.5, scale::BinScale::Kibi)
+                .with_precision(1)
+                .with_unit('B')
+                .with_label(item)
+                .into_fmt();
+            entries.push(entry);
+            Ok(())
+        })
 }
 
 /// A single specification for status line entries
