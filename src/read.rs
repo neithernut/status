@@ -19,39 +19,6 @@ pub trait BufProcessor {
     fn process(&mut self, buf: &[u8]);
 }
 
-/// [BufProcessor] extracting a single (parsed) word
-#[derive(Default)]
-pub struct Word<U>(U);
-
-impl<U> BufProcessor for Word<U>
-where
-    U: source::Updateable,
-    U::Value: FromStr,
-{
-    fn process(&mut self, buf: &[u8]) {
-        let data = buf
-            .split(u8::is_ascii_whitespace)
-            .find(|w| !w.is_empty())
-            .and_then(|w| std::str::from_utf8(w).ok())
-            .and_then(|s| s.parse().ok());
-        if let Some(data) = data {
-            self.0.update(data)
-        } else {
-            self.0.update_invalid()
-        }
-    }
-}
-
-impl<U: source::Source> source::Source for Word<U> {
-    type Value = U::Value;
-
-    type Borrow<'a> = U::Borrow<'a> where U: 'a;
-
-    fn value(&self) -> Option<Self::Borrow<'_>> {
-        self.0.value()
-    }
-}
-
 /// [BufProcessor] extracting a single (parsed) substring
 pub struct Simple<U> {
     source: U,
