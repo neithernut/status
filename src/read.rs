@@ -52,6 +52,55 @@ impl<U: source::Source> source::Source for Word<U> {
     }
 }
 
+/// [BufProcessor] extracting a single (parsed) substring
+pub struct Simple<U> {
+    source: U,
+    split_fn: fn(&u8) -> bool,
+}
+
+impl<U> Simple<U> {
+    /// Create a new simple [BufProcessor]
+    pub fn new(source: U, split_fn: fn(&u8) -> bool) -> Self {
+        Self { source, split_fn }
+    }
+
+    pub fn new_default(split_fn: fn(&u8) -> bool) -> Self
+    where
+        U: Default,
+    {
+        Self::new(Default::default(), split_fn)
+    }
+}
+
+impl<U> BufProcessor for Simple<U>
+where
+    U: source::Updateable,
+    U::Value: FromStr,
+{
+    fn process(&mut self, buf: &[u8]) {
+        let data = buf
+            .split(self.split_fn)
+            .find(|w| !w.is_empty())
+            .and_then(|w| std::str::from_utf8(w).ok())
+            .and_then(|s| s.parse().ok());
+        if let Some(data) = data {
+            self.source.update(data)
+        } else {
+            self.source.update_invalid()
+        }
+    }
+}
+
+impl<U: source::Source> source::Source for Simple<U> {
+    type Value = U::Value;
+
+    type Borrow<'a> = U::Borrow<'a> where U: 'a;
+
+    fn value(&self) -> Option<Self::Borrow<'_>> {
+        self.source.value()
+    }
+}
+
 /// [BufProcessor] for a 10min average PSI info
 #[derive(Default)]
 pub struct PSI {
