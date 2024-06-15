@@ -41,14 +41,14 @@ fn apply(
     match spec.main {
         "datetime" | "time" | "dt" | "t" => {
             spec.no_subs()?;
-            entries.push(entry::LocalTime.into_fmt())
+            entries.push(entry::LocalTime.into_fmt());
+            Ok(())
         }
-        "load" | "l" => apply_load(spec, entries, installer)?,
-        "pressure" | "pres" | "psi" | "p" => apply_psi(spec, entries, installer)?,
-        "memory" | "mem" | "m" => apply_meminfo(spec, entries, installer)?,
+        "load" | "l" => apply_load(spec, entries, installer),
+        "pressure" | "pres" | "psi" | "p" => apply_psi(spec, entries, installer),
+        "memory" | "mem" | "m" => apply_meminfo(spec, entries, installer),
         _ => anyhow::bail!("Unknown main spec: '{}'", spec.main),
     }
-    Ok(())
 }
 
 /// Aplly a load [Spec]
