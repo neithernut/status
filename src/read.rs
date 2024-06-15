@@ -266,29 +266,29 @@ mod tests {
     use source::Source;
 
     #[test]
-    fn word_single() {
-        let mut processor = Word::<Option<u64>>::default();
+    fn simple_single() {
+        let mut processor = Simple::<Option<u64>>::new_default(u8::is_ascii_whitespace);
         processor.process(b"123");
         assert_eq!(processor.value(), Some(123));
     }
 
     #[test]
-    fn word_multiple() {
-        let mut processor = Word::<Option<u64>>::default();
+    fn simple_multiple() {
+        let mut processor = Simple::<Option<u64>>::new_default(u8::is_ascii_whitespace);
         processor.process(b"123 456");
         assert_eq!(processor.value(), Some(123));
     }
 
     #[test]
-    fn word_invalid_single() {
-        let mut processor = Word::<Option<u64>>::default();
+    fn simple_invalid_single() {
+        let mut processor = Simple::<Option<u64>>::new_default(u8::is_ascii_whitespace);
         processor.process(b"foo");
         assert_eq!(processor.value(), None);
     }
 
     #[test]
-    fn word_invalid_multiple() {
-        let mut processor = Word::<Option<u64>>::default();
+    fn simple_invalid_multiple() {
+        let mut processor = Simple::<Option<u64>>::new_default(u8::is_ascii_whitespace);
         processor.process(b"foo 123");
         assert_eq!(processor.value(), None);
     }
