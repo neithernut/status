@@ -19,14 +19,6 @@ pub trait Entry: Sized + 'static {
     /// Get a display representation for this entry
     fn display(&self) -> Option<Self::Display<'_>>;
 
-    /// Transform this entry into a labeled one
-    fn with_label<L>(self, label: L) -> Labeled<L, Self>
-    where
-        L: fmt::Display + Sized + 'static,
-    {
-        Labeled { label, entry: self }
-    }
-
     /// Transform this entry into one with a unit
     fn with_unit<U>(self, unit: U) -> WithUnit<Self, U>
     where
@@ -149,6 +141,11 @@ where
     }
 }
 
+/// Create a label from a [fmt::Display]
+pub fn label(display: impl fmt::Display + 'static) -> Box<dyn fmt::Display> {
+    Box::new(FormatterFn(move |f| write!(f, "{display}:")))
+}
+
 /// Utility for formatting a "formatting `Fn`"
 struct FormatterFn<F: Fn(&mut fmt::Formatter<'_>) -> fmt::Result>(F);
 
@@ -207,36 +204,6 @@ impl fmt::Display for DateTime {
             self.0.tm_min,
             self.0.tm_sec,
         )
-    }
-}
-
-/// A labeled [Entry]
-pub struct Labeled<L: fmt::Display + Sized + 'static, E: Entry> {
-    label: L,
-    entry: E,
-}
-
-impl<L: fmt::Display + Sized + 'static, E: Entry> Entry for Labeled<L, E> {
-    type Display<'a> = LabeledDisplay<'a, L, E::Display<'a>>;
-
-    fn display(&self) -> Option<Self::Display<'_>> {
-        Some(Self::Display {
-            label: &self.label,
-            display: self.entry.display(),
-        })
-    }
-}
-
-/// A labeled [fmt::Display]
-pub struct LabeledDisplay<'l, L: fmt::Display, D: fmt::Display> {
-    label: &'l L,
-    display: Option<D>,
-}
-
-impl<L: fmt::Display, D: fmt::Display> fmt::Display for LabeledDisplay<'_, L, D> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let display = OptionDisplay(self.display.as_ref());
-        write!(f, "{}: {}", self.label, display)
     }
 }
 
@@ -357,18 +324,6 @@ mod tests {
     fn entry_display_empty() {
         let entries: EntriesDisplay = Vec::new().into();
         assert_eq!(entries.to_string(), "")
-    }
-
-    #[test]
-    fn label_smoke() {
-        let s = Some("a").with_label("val").into_fmt().to_string();
-        assert_eq!(s, "val: a")
-    }
-
-    #[test]
-    fn label_empty() {
-        let s = None::<&str>.with_label("val").into_fmt().to_string();
-        assert_eq!(s, "val: ???")
     }
 
     #[test]
