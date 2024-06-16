@@ -126,7 +126,7 @@ impl Item {
     /// The [io_uring::squeue::Entry] returned will read the (internally held)
     /// file into the (internally held) buffer when submitted.
     pub fn prepare(&mut self) -> io_uring::squeue::Entry {
-        let fd = io_uring::types::Fd(self.file.as_raw_fd());
+        let fd = io_uring::types::Fd(self.raw_fd());
         let buf = Pin::into_inner(self.buf.as_mut());
         io_uring::opcode::Read::new(fd, buf.as_mut_ptr(), buf.len().try_into().unwrap()).build()
     }
