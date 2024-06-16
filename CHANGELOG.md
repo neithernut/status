@@ -17,6 +17,8 @@ is based on https://keepachangelog.com/en/1.1.0/.
 
 ### Changed
 
+- Register file descriptors we read from via the IO uring. This could decrease
+  resource consumption.
 - Change the mechanism through which labels are introduced into a status line.
 - Refactor specification application: move parts to separate functions.
 - Change the mechanism through which entries are formatted internally.

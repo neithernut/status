@@ -126,7 +126,7 @@ impl Item {
     /// The [io_uring::squeue::Entry] returned will read the (internally held)
     /// file into the (internally held) buffer when submitted.
     pub fn prepare(&mut self) -> io_uring::squeue::Entry {
-        let fd = io_uring::types::Fd(self.file.as_raw_fd());
+        let fd = io_uring::types::Fd(self.raw_fd());
         let buf = Pin::into_inner(self.buf.as_mut());
         io_uring::opcode::Read::new(fd, buf.as_mut_ptr(), buf.len().try_into().unwrap()).build()
     }
@@ -146,6 +146,11 @@ impl Item {
         self.extract.borrow_mut().process(&self.buf[..length]);
         Ok(())
     }
+
+    /// Retrieve the file descriptor for this item
+    pub fn raw_fd(&self) -> std::os::fd::RawFd {
+        self.file.as_raw_fd()
+    }
 }
 
 /// Abstraction of an IO uring processing a set of [Item]s multiple times
@@ -164,10 +169,17 @@ impl Ring {
             .max(1)
             .try_into()
             .context("Too many items for one ring")?;
-        ring_builder
+
+        let ring = ring_builder
             .build(num)
-            .context("Could not create IO uring")
-            .map(|ring| Self { ring, items })
+            .context("Could not create IO uring")?;
+
+        let fds: Vec<_> = items.iter().map(Item::raw_fd).collect();
+        ring.submitter()
+            .register_files(fds.as_ref())
+            .context("Could not register fds")?;
+
+        Ok(Self { ring, items })
     }
 
     /// Prepare submission queue events for all [Item]s
