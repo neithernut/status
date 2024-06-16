@@ -146,6 +146,11 @@ impl Item {
         self.extract.borrow_mut().process(&self.buf[..length]);
         Ok(())
     }
+
+    /// Retrieve the file descriptor for this item
+    pub fn raw_fd(&self) -> std::os::fd::RawFd {
+        self.file.as_raw_fd()
+    }
 }
 
 /// Abstraction of an IO uring processing a set of [Item]s multiple times
