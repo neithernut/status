@@ -6,6 +6,7 @@ use rustix::{io::Errno, time};
 
 mod entry;
 mod meminfo;
+mod power;
 mod read;
 mod scale;
 mod source;
