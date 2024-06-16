@@ -169,10 +169,17 @@ impl Ring {
             .max(1)
             .try_into()
             .context("Too many items for one ring")?;
-        ring_builder
+
+        let ring = ring_builder
             .build(num)
-            .context("Could not create IO uring")
-            .map(|ring| Self { ring, items })
+            .context("Could not create IO uring")?;
+
+        let fds: Vec<_> = items.iter().map(Item::raw_fd).collect();
+        ring.submitter()
+            .register_files(fds.as_ref())
+            .context("Could not register fds")?;
+
+        Ok(Self { ring, items })
     }
 
     /// Prepare submission queue events for all [Item]s
