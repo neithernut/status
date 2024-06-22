@@ -208,10 +208,15 @@ impl Ring {
 
     /// Prepare submission queue events for all [Item]s
     pub fn prepare(&mut self) -> Result<()> {
+        // We expect the next processing to be roughly in a second from now. We
+        // include some additional time to account for any jitter.
+        let estimated_processing = Instant::now() + Duration::from_millis(1100);
+
         let mut sq = self.ring.submission();
         self.items
             .iter_mut()
             .zip(0..)
+            .filter(|(t, _)| t.wants_processing(estimated_processing))
             .map(|(t, n)| t.prepare().user_data(n))
             .try_for_each(|e| unsafe { sq.push(&e) })
             .context("Could not prepare SQEs")?;
