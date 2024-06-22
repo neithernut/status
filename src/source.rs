@@ -68,6 +68,54 @@ pub trait WantsProcessing {
 
 impl<T> WantsProcessing for Option<T> {}
 
+/// A [Source] that should be updated with a "lower" rate
+///
+/// This [Source] does accept every update it receives and serves that value.
+/// However, it [WantsProcessing] only if a specific duration has passed since
+/// the last update.
+pub struct LowerRate<T> {
+    data: Option<(T, Instant)>,
+    rate: Duration,
+}
+
+impl<T> LowerRate<T> {
+    /// Create a new [Source] wanting updates only once in the given [Duration]
+    pub fn new(rate: Duration) -> Self {
+        Self { data: None, rate }
+    }
+}
+
+impl<T: Clone> Source for LowerRate<T> {
+    type Value = T;
+
+    type Borrow<'a> = Self::Value where Self::Value: 'a;
+
+    fn value(&self) -> Option<Self::Borrow<'_>> {
+        self.data.clone().map(|(v, _)| v)
+    }
+}
+
+impl<T> Updateable for LowerRate<T> {
+    type Value = T;
+
+    fn update(&mut self, value: Self::Value) {
+        self.data = Some((value, Instant::now()));
+    }
+
+    fn update_invalid(&mut self) {
+        self.data = None;
+    }
+}
+
+impl<T> WantsProcessing for LowerRate<T> {
+    fn wants_processing(&self, before: Instant) -> bool {
+        self.data
+            .as_ref()
+            .map(|(_, l)| before.duration_since(*l) >= self.rate)
+            .unwrap_or(true)
+    }
+}
+
 /// A moving average
 ///
 /// This [Source] will yield an average over all values with which it was
