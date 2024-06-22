@@ -17,7 +17,7 @@ use crate::Instant;
 ///
 /// Buffer processors are meant for constructing read [Item]s. They receive the
 /// read contents via [BufProcessor::process].
-pub trait BufProcessor {
+pub trait BufProcessor: WantsProcessing {
     fn process(&mut self, buf: &[u8]);
 }
 
