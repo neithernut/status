@@ -5,11 +5,7 @@
 use std::borrow::Borrow;
 use std::time::Duration;
 
-#[cfg(test)]
-use mock_instant::global::Instant;
-
-#[cfg(not(test))]
-use std::time::Instant;
+use crate::Instant;
 
 /// A source for values
 pub trait Source {
