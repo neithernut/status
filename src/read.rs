@@ -6,6 +6,7 @@ use std::fs::File;
 use std::os::fd::AsRawFd;
 use std::pin::Pin;
 use std::str::FromStr;
+use std::time::Duration;
 
 use anyhow::{Context, Result};
 
@@ -78,7 +79,7 @@ impl<U: WantsProcessing> WantsProcessing for Simple<U> {
 /// [BufProcessor] for a 10min average PSI info
 #[derive(Default)]
 pub struct PSI {
-    data: Option<f32>,
+    data: Option<(f32, Instant)>,
 }
 
 impl BufProcessor for PSI {
@@ -89,7 +90,8 @@ impl BufProcessor for PSI {
             .flat_map(|l| l.split(u8::is_ascii_whitespace))
             .filter_map(|w| w.strip_prefix(b"avg10="))
             .find_map(|w| std::str::from_utf8(w).ok())
-            .and_then(|s| s.parse().ok());
+            .and_then(|s| s.parse().ok())
+            .map(|v| (v, Instant::now()));
     }
 }
 
@@ -99,7 +101,16 @@ impl source::Source for PSI {
     type Borrow<'a> = Self::Value;
 
     fn value(&self) -> Option<Self::Borrow<'_>> {
+        self.data.map(|(v, _)| v)
+    }
+}
+
+impl WantsProcessing for PSI {
+    fn wants_processing(&self, before: Instant) -> bool {
         self.data
+            .as_ref()
+            .map(|(_, l)| before.duration_since(*l) >= Duration::from_secs(1))
+            .unwrap_or(true)
     }
 }
 
