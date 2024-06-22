@@ -43,7 +43,7 @@ impl<U> Simple<U> {
 
 impl<U> BufProcessor for Simple<U>
 where
-    U: source::Updateable,
+    U: source::Updateable + WantsProcessing,
     U::Value: FromStr,
 {
     fn process(&mut self, buf: &[u8]) {
