@@ -55,6 +55,19 @@ impl<T> Updateable for Option<T> {
     }
 }
 
+/// Something (usually a [Source]) that requests some sort of processing
+pub trait WantsProcessing {
+    /// Determine whether an processing is wanted before the given [Instant]
+    ///
+    /// Whether processing is wanted or not also affects whether any input
+    /// values need to be supplied for that processing.
+    fn wants_processing(&self, _before: Instant) -> bool {
+        true
+    }
+}
+
+impl<T> WantsProcessing for Option<T> {}
+
 /// A moving average
 ///
 /// This [Source] will yield an average over all values with which it was
