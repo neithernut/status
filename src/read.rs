@@ -9,7 +9,8 @@ use std::str::FromStr;
 
 use anyhow::{Context, Result};
 
-use crate::source;
+use crate::source::{self, WantsProcessing};
+use crate::Instant;
 
 /// Processor for buffer contents
 ///
@@ -65,6 +66,12 @@ impl<U: source::Source> source::Source for Simple<U> {
 
     fn value(&self) -> Option<Self::Borrow<'_>> {
         self.source.value()
+    }
+}
+
+impl<U: WantsProcessing> WantsProcessing for Simple<U> {
+    fn wants_processing(&self, before: Instant) -> bool {
+        self.source.wants_processing(before)
     }
 }
 
