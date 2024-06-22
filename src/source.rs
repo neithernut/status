@@ -190,6 +190,15 @@ where
     }
 }
 
+impl<T> WantsProcessing for MovingAverage<T> {
+    fn wants_processing(&self, before: Instant) -> bool {
+        self.current
+            .as_ref()
+            .map(|(_, l)| before.duration_since(*l) >= self.span.mul_f32(Self::MIN_UPDATE_FRAC))
+            .unwrap_or(true)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
