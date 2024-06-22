@@ -72,6 +72,9 @@ impl<T> MovingAverage<T> {
             span,
         }
     }
+
+    /// Minimum fraction of the timespan required for an update to be accepted
+    const MIN_UPDATE_FRAC: f32 = 0.02;
 }
 
 impl<T: Clone> Source for MovingAverage<T> {
@@ -108,7 +111,7 @@ where
         // We want to dodge situations in which we'll end up with a huge error,
         // and we definitely want to dodge infs and NaNs.
         let frac = duration.as_secs_f32() / self.span.as_secs_f32();
-        if frac.is_normal() && frac >= 0.02 {
+        if frac.is_normal() && frac >= Self::MIN_UPDATE_FRAC {
             self.current = Some((value * frac + last_avg * (1. - frac), now));
         }
     }
