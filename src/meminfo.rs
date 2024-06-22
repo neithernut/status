@@ -5,7 +5,7 @@
 use std::fmt;
 
 use crate::read::BufProcessor;
-use crate::source::Source;
+use crate::source::{Source, WantsProcessing};
 
 /// Values found in `/proc/meminfo`
 pub type MemInfo = enum_map::EnumMap<Item, Option<u64>>;
@@ -19,6 +19,8 @@ impl Source for MemInfo {
         Some(self)
     }
 }
+
+impl WantsProcessing for MemInfo {}
 
 impl BufProcessor for MemInfo {
     fn process(&mut self, buf: &[u8]) {
