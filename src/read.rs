@@ -171,6 +171,12 @@ impl Item {
     }
 }
 
+impl WantsProcessing for Item {
+    fn wants_processing(&self, before: Instant) -> bool {
+        self.extract.borrow().wants_processing(before)
+    }
+}
+
 /// Abstraction of an IO uring processing a set of [Item]s multiple times
 pub struct Ring {
     ring: io_uring::IoUring,
