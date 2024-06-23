@@ -19,6 +19,15 @@ pub trait Source {
 
     /// Retrieve the (current) value from this source
     fn value(&self) -> Option<Self::Borrow<'_>>;
+
+    /// Make a [Gated] [Source] with the given predicate
+    fn gated_with<C>(self, condition: C) -> Gated<Self, C>
+    where
+        C: Fn() -> bool,
+        Self: Sized,
+    {
+        Gated::new(self, condition)
+    }
 }
 
 impl<T: Clone> Source for Option<T> {
