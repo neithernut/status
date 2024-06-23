@@ -17,6 +17,7 @@ use crate::meminfo;
 use crate::power;
 use crate::read;
 use crate::scale;
+use crate::source::{self, LowerRate};
 
 /// Create entries based on command line arguments
 ///
@@ -118,25 +119,25 @@ fn apply_battery(
     entries: &mut Vec<Box<dyn fmt::Display>>,
     installer: &mut ReadItemInstaller<'_>,
 ) -> Result<()> {
-    use crate::source::{MovingAverage, Source};
     use power::Status;
     use read::Simple;
+    use source::{MovingAverage, Source};
 
     spec.parsed_subs_or(power::supplies()?)
         .filter_map(Result::ok)
         .filter(|p| p.kind().ok() == Some(power::Kind::Battery))
         .try_for_each(|p| {
-            let full = installer.install_file(
-                p.charge_full_file()?,
-                16,
-                Simple::<Option<f32>>::new_default(u8::is_ascii_whitespace),
-            )?;
-            let now = installer.install_file(
-                p.charge_now_file()?,
-                16,
-                Simple::<Option<f32>>::new_default(u8::is_ascii_whitespace),
-            )?;
-            let soc = entry::zipped(full, now.clone(), |f, n| Some(100. * n / f))
+            let full = Simple::new(
+                LowerRate::new(Duration::from_secs(120)),
+                u8::is_ascii_whitespace,
+            );
+            let full = installer.install_file(p.charge_full_file()?, 16, full)?;
+            let now = Simple::new(
+                LowerRate::new(Duration::from_secs(15)),
+                u8::is_ascii_whitespace,
+            );
+            let now = installer.install_file(p.charge_now_file()?, 16, now)?;
+            let soc = entry::zipped(full, now.clone(), |f: &f32, n: &f32| Some(100. * n / f))
                 .with_precision(0)
                 .with_unit('%')
                 .into_fmt();
