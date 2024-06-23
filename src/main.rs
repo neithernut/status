@@ -4,6 +4,12 @@
 use anyhow::{Context, Error, Result};
 use rustix::{io::Errno, time};
 
+#[cfg(test)]
+use mock_instant::global::Instant;
+
+#[cfg(not(test))]
+use std::time::Instant;
+
 mod entry;
 mod meminfo;
 mod power;

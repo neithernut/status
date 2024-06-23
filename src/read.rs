@@ -6,16 +6,18 @@ use std::fs::File;
 use std::os::fd::AsRawFd;
 use std::pin::Pin;
 use std::str::FromStr;
+use std::time::Duration;
 
 use anyhow::{Context, Result};
 
-use crate::source;
+use crate::source::{self, WantsProcessing};
+use crate::Instant;
 
 /// Processor for buffer contents
 ///
 /// Buffer processors are meant for constructing read [Item]s. They receive the
 /// read contents via [BufProcessor::process].
-pub trait BufProcessor {
+pub trait BufProcessor: WantsProcessing {
     fn process(&mut self, buf: &[u8]);
 }
 
@@ -41,7 +43,7 @@ impl<U> Simple<U> {
 
 impl<U> BufProcessor for Simple<U>
 where
-    U: source::Updateable,
+    U: source::Updateable + WantsProcessing,
     U::Value: FromStr,
 {
     fn process(&mut self, buf: &[u8]) {
@@ -68,10 +70,16 @@ impl<U: source::Source> source::Source for Simple<U> {
     }
 }
 
+impl<U: WantsProcessing> WantsProcessing for Simple<U> {
+    fn wants_processing(&self, before: Instant) -> bool {
+        self.source.wants_processing(before)
+    }
+}
+
 /// [BufProcessor] for a 10min average PSI info
 #[derive(Default)]
 pub struct PSI {
-    data: Option<f32>,
+    data: Option<(f32, Instant)>,
 }
 
 impl BufProcessor for PSI {
@@ -82,7 +90,8 @@ impl BufProcessor for PSI {
             .flat_map(|l| l.split(u8::is_ascii_whitespace))
             .filter_map(|w| w.strip_prefix(b"avg10="))
             .find_map(|w| std::str::from_utf8(w).ok())
-            .and_then(|s| s.parse().ok());
+            .and_then(|s| s.parse().ok())
+            .map(|v| (v, Instant::now()));
     }
 }
 
@@ -92,7 +101,16 @@ impl source::Source for PSI {
     type Borrow<'a> = Self::Value;
 
     fn value(&self) -> Option<Self::Borrow<'_>> {
+        self.data.map(|(v, _)| v)
+    }
+}
+
+impl WantsProcessing for PSI {
+    fn wants_processing(&self, before: Instant) -> bool {
         self.data
+            .as_ref()
+            .map(|(_, l)| before.duration_since(*l) >= Duration::from_secs(1))
+            .unwrap_or(true)
     }
 }
 
@@ -153,6 +171,12 @@ impl Item {
     }
 }
 
+impl WantsProcessing for Item {
+    fn wants_processing(&self, before: Instant) -> bool {
+        self.extract.borrow().wants_processing(before)
+    }
+}
+
 /// Abstraction of an IO uring processing a set of [Item]s multiple times
 pub struct Ring {
     ring: io_uring::IoUring,
@@ -184,10 +208,15 @@ impl Ring {
 
     /// Prepare submission queue events for all [Item]s
     pub fn prepare(&mut self) -> Result<()> {
+        // We expect the next processing to be roughly in a second from now. We
+        // include some additional time to account for any jitter.
+        let estimated_processing = Instant::now() + Duration::from_millis(1100);
+
         let mut sq = self.ring.submission();
         self.items
             .iter_mut()
             .zip(0..)
+            .filter(|(t, _)| t.wants_processing(estimated_processing))
             .map(|(t, n)| t.prepare().user_data(n))
             .try_for_each(|e| unsafe { sq.push(&e) })
             .context("Could not prepare SQEs")?;

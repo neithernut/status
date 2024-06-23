@@ -5,11 +5,7 @@
 use std::borrow::Borrow;
 use std::time::Duration;
 
-#[cfg(test)]
-use mock_instant::global::Instant;
-
-#[cfg(not(test))]
-use std::time::Instant;
+use crate::Instant;
 
 /// A source for values
 pub trait Source {
@@ -59,6 +55,67 @@ impl<T> Updateable for Option<T> {
     }
 }
 
+/// Something (usually a [Source]) that requests some sort of processing
+pub trait WantsProcessing {
+    /// Determine whether an processing is wanted before the given [Instant]
+    ///
+    /// Whether processing is wanted or not also affects whether any input
+    /// values need to be supplied for that processing.
+    fn wants_processing(&self, _before: Instant) -> bool {
+        true
+    }
+}
+
+impl<T> WantsProcessing for Option<T> {}
+
+/// A [Source] that should be updated with a "lower" rate
+///
+/// This [Source] does accept every update it receives and serves that value.
+/// However, it [WantsProcessing] only if a specific duration has passed since
+/// the last update.
+pub struct LowerRate<T> {
+    data: Option<(T, Instant)>,
+    rate: Duration,
+}
+
+impl<T> LowerRate<T> {
+    /// Create a new [Source] wanting updates only once in the given [Duration]
+    pub fn new(rate: Duration) -> Self {
+        Self { data: None, rate }
+    }
+}
+
+impl<T: Clone> Source for LowerRate<T> {
+    type Value = T;
+
+    type Borrow<'a> = Self::Value where Self::Value: 'a;
+
+    fn value(&self) -> Option<Self::Borrow<'_>> {
+        self.data.clone().map(|(v, _)| v)
+    }
+}
+
+impl<T> Updateable for LowerRate<T> {
+    type Value = T;
+
+    fn update(&mut self, value: Self::Value) {
+        self.data = Some((value, Instant::now()));
+    }
+
+    fn update_invalid(&mut self) {
+        self.data = None;
+    }
+}
+
+impl<T> WantsProcessing for LowerRate<T> {
+    fn wants_processing(&self, before: Instant) -> bool {
+        self.data
+            .as_ref()
+            .map(|(_, l)| before.duration_since(*l) >= self.rate)
+            .unwrap_or(true)
+    }
+}
+
 /// A moving average
 ///
 /// This [Source] will yield an average over all values with which it was
@@ -76,6 +133,9 @@ impl<T> MovingAverage<T> {
             span,
         }
     }
+
+    /// Minimum fraction of the timespan required for an update to be accepted
+    const MIN_UPDATE_FRAC: f32 = 0.02;
 }
 
 impl<T: Clone> Source for MovingAverage<T> {
@@ -112,7 +172,7 @@ where
         // We want to dodge situations in which we'll end up with a huge error,
         // and we definitely want to dodge infs and NaNs.
         let frac = duration.as_secs_f32() / self.span.as_secs_f32();
-        if frac.is_normal() && frac >= 0.02 {
+        if frac.is_normal() && frac >= Self::MIN_UPDATE_FRAC {
             self.current = Some((value * frac + last_avg * (1. - frac), now));
         }
     }
@@ -127,6 +187,15 @@ where
         {
             self.current = None;
         }
+    }
+}
+
+impl<T> WantsProcessing for MovingAverage<T> {
+    fn wants_processing(&self, before: Instant) -> bool {
+        self.current
+            .as_ref()
+            .map(|(_, l)| before.duration_since(*l) >= self.span.mul_f32(Self::MIN_UPDATE_FRAC))
+            .unwrap_or(true)
     }
 }
 

@@ -7,6 +7,7 @@ is based on https://keepachangelog.com/en/1.1.0/.
 
 ### Added
 
+- Add mechanisms for processing some values at a lower rate.
 - Add support for including information related to batteries in the status.
 - Support handling of files with uncertain paths in internal utility
   `ReadItemInstaller`.
