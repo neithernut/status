@@ -8,6 +8,7 @@ use std::fs::File;
 use std::os::linux::fs::MetadataExt;
 use std::path::Path;
 use std::str::FromStr;
+use std::time::Duration;
 
 use anyhow::{Context, Result};
 
@@ -145,7 +146,10 @@ fn apply_battery(
                 16,
                 Simple::<Option<Status>>::new_default(u8::is_ascii_control),
             )?;
-            let avg = MovingAverage::<f32>::new(std::time::Duration::from_secs(60));
+            let avg = MovingAverage::<f32>::new(Duration::from_secs(60)).gated_with({
+                let status = status.clone();
+                move || status.borrow().value() == Some(Status::Discharging)
+            });
             let current = installer.install_file(
                 p.current_now_file()?,
                 16,
