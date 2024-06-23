@@ -153,18 +153,19 @@ fn apply_battery(
             )?;
             let status = move || {
                 let status = status.borrow().value()?;
-                if status == Status::Discharging {
-                    let charge = now.borrow().value();
-                    let current = current.borrow().value().filter(|c| c.is_normal());
-                    Option::zip(current, charge)
-                        .map(|(a, b)| b * 3600. / a) // µAh * s/h / µA
-                        .autoscaled(1.5, scale::Duration::Second)
-                        .with_precision(1)
-                        .display()
-                        .map(either::Either::Left)
-                } else {
-                    Some(either::Either::Right(status.symbol()))
-                }
+                let display = (status == Status::Discharging)
+                    .then(|| {
+                        let charge = now.borrow().value();
+                        let current = current.borrow().value().filter(|c| c.is_normal());
+                        Option::zip(current, charge)
+                    })
+                    .flatten()
+                    .map(|(i, c)| c * 3600. / i) // µAh * s/h / µA
+                    .autoscaled(1.5, scale::Duration::Second)
+                    .with_precision(1)
+                    .display()
+                    .map_or(either::Either::Left(status.symbol()), either::Either::Right);
+                Some(display)
             };
 
             entries.push(entry::label(p.name().to_owned()));
