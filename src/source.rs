@@ -199,6 +199,46 @@ impl<T> WantsProcessing for MovingAverage<T> {
     }
 }
 
+/// An entity that wants processing depending on a condition
+pub struct Gated<S, C: Fn() -> bool> {
+    inner: S,
+    condition: C,
+}
+
+impl<S, C: Fn() -> bool> Gated<S, C> {
+    /// Create a new gated entity
+    pub fn new(source: S, condition: C) -> Self {
+        Self {
+            inner: source,
+            condition,
+        }
+    }
+}
+
+impl<S: Source, C: Fn() -> bool> Source for Gated<S, C> {
+    type Value = <S as Source>::Value;
+
+    type Borrow<'a> = S::Borrow<'a> where Self: 'a;
+
+    fn value(&self) -> Option<Self::Borrow<'_>> {
+        self.inner.value()
+    }
+}
+
+impl<S: Updateable, C: Fn() -> bool> Updateable for Gated<S, C> {
+    type Value = <S as Updateable>::Value;
+
+    fn update(&mut self, value: Self::Value) {
+        self.inner.update(value)
+    }
+}
+
+impl<S: WantsProcessing, C: Fn() -> bool> WantsProcessing for Gated<S, C> {
+    fn wants_processing(&self, before: Instant) -> bool {
+        (self.condition)() && self.inner.wants_processing(before)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
