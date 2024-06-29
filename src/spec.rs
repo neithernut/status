@@ -84,7 +84,7 @@ fn apply_psi(
     spec.parsed_subs_or([Ok(PSI::Cpu), Ok(PSI::Memory), Ok(PSI::Io)])
         .try_for_each(|i| {
             let indicator = i?;
-            let read = read::PSI::from(None);
+            let read: read::PSI<_> = LowerRate::new(BASE_INTERVAL).into();
             let entry = installer
                 .install(indicator.path(), 128, read)?
                 .with_precision(2)
