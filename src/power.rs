@@ -89,6 +89,7 @@ impl std::str::FromStr for Supply {
 
 /// Kind of power supply
 #[derive(Copy, Clone, PartialEq)]
+#[allow(clippy::upper_case_acronyms)]
 pub enum Kind {
     Battery,
     UPS,
