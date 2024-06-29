@@ -79,8 +79,9 @@ fn apply_psi(
     spec.parsed_subs_or([Ok(PSI::Cpu), Ok(PSI::Memory), Ok(PSI::Io)])
         .try_for_each(|i| {
             let indicator = i?;
+            let read = read::PSI::from(None);
             let entry = installer
-                .default::<read::PSI>(indicator.path(), 128)?
+                .install(indicator.path(), 128, read)?
                 .with_precision(2)
                 .into_fmt();
             entries.push(entry::label(indicator));
