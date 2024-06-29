@@ -148,7 +148,7 @@ fn apply_battery(
             let status = installer.install_file(
                 p.status_file()?,
                 16,
-                Simple::<Option<Status>>::new_default(u8::is_ascii_control),
+                Simple::new(LowerRate::new(BASE_INTERVAL), u8::is_ascii_control),
             )?;
             let avg = MovingAverage::<f32>::new(Duration::from_secs(60)).gated_with({
                 let status = status.clone();
