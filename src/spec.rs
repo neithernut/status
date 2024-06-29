@@ -65,7 +65,10 @@ fn apply_load(
     installer: &mut ReadItemInstaller<'_>,
 ) -> Result<()> {
     spec.no_subs()?;
-    let read = read::Simple::<Option<f32>>::new_default(u8::is_ascii_whitespace);
+    let read = read::Simple::new(
+        LowerRate::<f32>::new(BASE_INTERVAL),
+        u8::is_ascii_whitespace,
+    );
     let entry = installer
         .install("/proc/loadavg", 64, read)?
         .with_precision(2)
