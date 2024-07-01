@@ -19,6 +19,9 @@ use crate::read;
 use crate::scale;
 use crate::source::{self, LowerRate};
 
+/// Base interval for updates
+const BASE_INTERVAL: Duration = Duration::from_secs(5);
+
 /// Create entries based on command line arguments
 ///
 /// Associated [read::Item]s will be appended to `items`.
