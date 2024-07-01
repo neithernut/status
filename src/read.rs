@@ -78,39 +78,49 @@ impl<U: WantsProcessing> WantsProcessing for Simple<U> {
 
 /// [BufProcessor] for a 10min average PSI info
 #[derive(Default)]
-pub struct PSI {
-    data: Option<(f32, Instant)>,
+pub struct PSI<U> {
+    source: U,
 }
 
-impl BufProcessor for PSI {
+impl<U> From<U> for PSI<U> {
+    fn from(source: U) -> Self {
+        Self { source }
+    }
+}
+
+impl<U> BufProcessor for PSI<U>
+where
+    U: source::Updateable<Value = f32> + WantsProcessing,
+{
     fn process(&mut self, buf: &[u8]) {
-        self.data = buf
+        let data = buf
             .split(|c| *c == b'\n')
             .filter_map(|l| l.strip_prefix(b"some"))
             .flat_map(|l| l.split(u8::is_ascii_whitespace))
             .filter_map(|w| w.strip_prefix(b"avg10="))
             .find_map(|w| std::str::from_utf8(w).ok())
-            .and_then(|s| s.parse().ok())
-            .map(|v| (v, Instant::now()));
+            .and_then(|s| s.parse().ok());
+        if let Some(data) = data {
+            self.source.update(data)
+        } else {
+            self.source.update_invalid()
+        }
     }
 }
 
-impl source::Source for PSI {
-    type Value = f32;
+impl<U: source::Source> source::Source for PSI<U> {
+    type Value = U::Value;
 
-    type Borrow<'a> = Self::Value;
+    type Borrow<'a> = U::Borrow<'a> where U: 'a;
 
     fn value(&self) -> Option<Self::Borrow<'_>> {
-        self.data.map(|(v, _)| v)
+        self.source.value()
     }
 }
 
-impl WantsProcessing for PSI {
+impl<U: WantsProcessing> WantsProcessing for PSI<U> {
     fn wants_processing(&self, before: Instant) -> bool {
-        self.data
-            .as_ref()
-            .map(|(_, l)| before.duration_since(*l) >= Duration::from_secs(1))
-            .unwrap_or(true)
+        self.source.wants_processing(before)
     }
 }
 
@@ -307,7 +317,7 @@ mod tests {
             "some avg10=1.23 avg60=4.56 avg300=7.89 total=123456\n",
             "full avg10=2.34 avg60=5.67 avg300=8.90 total=789123\n",
         );
-        let mut processor = PSI::default();
+        let mut processor = PSI::from(None);
         processor.process(buf.as_ref());
         assert_eq!(processor.value(), Some(1.23));
     }

@@ -19,6 +19,8 @@ is based on https://keepachangelog.com/en/1.1.0/.
 
 ### Changed
 
+- Make values not update every tick in order to reduce the amount of CPU time
+  consumed.
 - Register file descriptors we read from via the IO uring. This could decrease
   resource consumption.
 - Change the mechanism through which labels are introduced into a status line.

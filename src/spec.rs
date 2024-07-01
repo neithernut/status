@@ -8,6 +8,7 @@ use std::fs::File;
 use std::os::linux::fs::MetadataExt;
 use std::path::Path;
 use std::str::FromStr;
+use std::time::Duration;
 
 use anyhow::{Context, Result};
 
@@ -16,6 +17,10 @@ use crate::meminfo;
 use crate::power;
 use crate::read;
 use crate::scale;
+use crate::source::{self, LowerRate};
+
+/// Base interval for updates
+const BASE_INTERVAL: Duration = Duration::from_secs(5);
 
 /// Create entries based on command line arguments
 ///
@@ -60,7 +65,10 @@ fn apply_load(
     installer: &mut ReadItemInstaller<'_>,
 ) -> Result<()> {
     spec.no_subs()?;
-    let read = read::Simple::<Option<f32>>::new_default(u8::is_ascii_whitespace);
+    let read = read::Simple::new(
+        LowerRate::<f32>::new(BASE_INTERVAL),
+        u8::is_ascii_whitespace,
+    );
     let entry = installer
         .install("/proc/loadavg", 64, read)?
         .with_precision(2)
@@ -79,8 +87,9 @@ fn apply_psi(
     spec.parsed_subs_or([Ok(PSI::Cpu), Ok(PSI::Memory), Ok(PSI::Io)])
         .try_for_each(|i| {
             let indicator = i?;
+            let read: read::PSI<_> = LowerRate::new(BASE_INTERVAL).into();
             let entry = installer
-                .default::<read::PSI>(indicator.path(), 128)?
+                .install(indicator.path(), 128, read)?
                 .with_precision(2)
                 .into_fmt();
             entries.push(entry::label(indicator));
@@ -116,25 +125,25 @@ fn apply_battery(
     entries: &mut Vec<Box<dyn fmt::Display>>,
     installer: &mut ReadItemInstaller<'_>,
 ) -> Result<()> {
-    use crate::source::{MovingAverage, Source};
     use power::Status;
     use read::Simple;
+    use source::{MovingAverage, Source};
 
     spec.parsed_subs_or(power::supplies()?)
         .filter_map(Result::ok)
         .filter(|p| p.kind().ok() == Some(power::Kind::Battery))
         .try_for_each(|p| {
-            let full = installer.install_file(
-                p.charge_full_file()?,
-                16,
-                Simple::<Option<f32>>::new_default(u8::is_ascii_whitespace),
-            )?;
-            let now = installer.install_file(
-                p.charge_now_file()?,
-                16,
-                Simple::<Option<f32>>::new_default(u8::is_ascii_whitespace),
-            )?;
-            let soc = entry::zipped(full, now.clone(), |f, n| Some(100. * n / f))
+            let full = Simple::new(
+                LowerRate::new(Duration::from_secs(120)),
+                u8::is_ascii_whitespace,
+            );
+            let full = installer.install_file(p.charge_full_file()?, 16, full)?;
+            let now = Simple::new(
+                LowerRate::new(Duration::from_secs(15)),
+                u8::is_ascii_whitespace,
+            );
+            let now = installer.install_file(p.charge_now_file()?, 16, now)?;
+            let soc = entry::zipped(full, now.clone(), |f: &f32, n: &f32| Some(100. * n / f))
                 .with_precision(0)
                 .with_unit('%')
                 .into_fmt();
@@ -142,9 +151,12 @@ fn apply_battery(
             let status = installer.install_file(
                 p.status_file()?,
                 16,
-                Simple::<Option<Status>>::new_default(u8::is_ascii_control),
+                Simple::new(LowerRate::new(BASE_INTERVAL), u8::is_ascii_control),
             )?;
-            let avg = MovingAverage::<f32>::new(std::time::Duration::from_secs(60));
+            let avg = MovingAverage::<f32>::new(Duration::from_secs(60)).gated_with({
+                let status = status.clone();
+                move || status.borrow().value() == Some(Status::Discharging)
+            });
             let current = installer.install_file(
                 p.current_now_file()?,
                 16,
@@ -152,18 +164,19 @@ fn apply_battery(
             )?;
             let status = move || {
                 let status = status.borrow().value()?;
-                if status == Status::Discharging {
-                    let charge = now.borrow().value();
-                    let current = current.borrow().value().filter(|c| c.is_normal());
-                    Option::zip(current, charge)
-                        .map(|(a, b)| b * 3600. / a) // µAh * s/h / µA
-                        .autoscaled(1.5, scale::Duration::Second)
-                        .with_precision(1)
-                        .display()
-                        .map(either::Either::Left)
-                } else {
-                    Some(either::Either::Right(status.symbol()))
-                }
+                let display = (status == Status::Discharging)
+                    .then(|| {
+                        let charge = now.borrow().value();
+                        let current = current.borrow().value().filter(|c| c.is_normal());
+                        Option::zip(current, charge)
+                    })
+                    .flatten()
+                    .map(|(i, c)| c * 3600. / i) // µAh * s/h / µA
+                    .autoscaled(1.5, scale::Duration::Second)
+                    .with_precision(1)
+                    .display()
+                    .map_or(either::Either::Left(status.symbol()), either::Either::Right);
+                Some(display)
             };
 
             entries.push(entry::label(p.name().to_owned()));
