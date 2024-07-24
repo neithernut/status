@@ -148,15 +148,6 @@ pub fn label(display: impl fmt::Display + 'static) -> Box<dyn fmt::Display> {
     Box::new(fmt::FormatterFn(move |f| write!(f, "{display}:")))
 }
 
-/// Utility for formatting a "formatting `Fn`"
-struct FormatterFn<F: Fn(&mut fmt::Formatter<'_>) -> fmt::Result>(F);
-
-impl<F: Fn(&mut fmt::Formatter<'_>) -> fmt::Result> fmt::Display for FormatterFn<F> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        (self.0)(f)
-    }
-}
-
 /// [fmt::Display] for displaying a space-separated list of entries
 pub struct EntriesDisplay(Vec<Box<dyn fmt::Display>>);
 
