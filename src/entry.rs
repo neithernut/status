@@ -145,7 +145,7 @@ where
 
 /// Create a label from a [fmt::Display]
 pub fn label(display: impl fmt::Display + 'static) -> Box<dyn fmt::Display> {
-    Box::new(FormatterFn(move |f| write!(f, "{display}:")))
+    Box::new(fmt::FormatterFn(move |f| write!(f, "{display}:")))
 }
 
 /// Utility for formatting a "formatting `Fn`"
