@@ -48,7 +48,9 @@ pub trait Entry: Sized + 'static {
     fn into_fmt(self) -> Box<dyn fmt::Display> {
         use fmt::Display;
 
-        Box::new(FormatterFn(move |f| OptionDisplay(self.display()).fmt(f)))
+        Box::new(fmt::FormatterFn(move |f| {
+            OptionDisplay(self.display()).fmt(f)
+        }))
     }
 }
 
