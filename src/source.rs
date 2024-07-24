@@ -146,8 +146,6 @@ impl<T> MovingAverage<T> {
 impl<T: Clone> Source for MovingAverage<T> {
     type Value = T;
 
-    type Borrow<'a> = Self::Value where Self::Value: 'a;
-
     fn value(&self) -> Option<Self::Borrow<'_>> {
         self.current.as_ref().map(|(v, _)| v.clone())
     }
