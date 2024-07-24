@@ -33,8 +33,6 @@ pub trait Source {
 impl<T: Clone> Source for Option<T> {
     type Value = T;
 
-    type Borrow<'a> = Self::Value where Self::Value: 'a;
-
     fn value(&self) -> Option<Self::Borrow<'_>> {
         self.clone()
     }
