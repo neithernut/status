@@ -174,7 +174,7 @@ where
 
         // We want to dodge situations in which we'll end up with a huge error,
         // and we definitely want to dodge infs and NaNs.
-        let frac = duration.as_secs_f32() / self.span.as_secs_f32();
+        let frac = duration.div_duration_f32(self.span);
         if frac.is_normal() && frac >= Self::MIN_UPDATE_FRAC {
             self.current = Some((value * frac + last_avg * (1. - frac), now));
         }
