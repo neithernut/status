@@ -2,6 +2,7 @@
 // Copyright Julian Ganz 2024
 #![feature(associated_type_defaults)]
 #![feature(div_duration)]
+#![feature(debug_closure_helpers)]
 
 use anyhow::{Context, Error, Result};
 use rustix::{io::Errno, time};
